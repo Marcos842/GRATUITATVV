@@ -64,8 +64,8 @@ function convertToEmbedUrl(url) {
         return embedUrl;
     }
 
-    if (url.includes('/embed') || url.includes('iframe') || url.includes('player')) {
-        console.log('✅ URL de embed detectada - Usando directamente');
+    if (url.includes('/embed') || url.includes('iframe') || url.includes('player') || url.includes('.m3u8')) {
+        console.log('✅ URL directa de embed/stream detectada - Usando directamente');
         return url;
     }
 
@@ -142,6 +142,7 @@ async function clearStreamUrl() {
     }
 }
 
+// PÁGINA PÚBLICA (index.html)
 if (document.getElementById('videoFrame') && !document.getElementById('adminPanel')) {
     window.addEventListener('load', async function() {
         console.log('🔍 Cargando transmisión...');
@@ -168,6 +169,7 @@ if (document.getElementById('videoFrame') && !document.getElementById('adminPane
         }
     });
 
+    // Auto-actualizar cada 30 segundos
     setInterval(async function() {
         const currentSrc = document.getElementById('videoFrame').src;
         const savedUrl = await getStreamUrl();
@@ -180,6 +182,7 @@ if (document.getElementById('videoFrame') && !document.getElementById('adminPane
     }, 30000);
 }
 
+// PANEL DE ADMINISTRACIÓN (admin.html)
 function checkPassword() {
     const password = document.getElementById('passwordInput').value;
     const errorMsg = document.getElementById('errorMsg');
