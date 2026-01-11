@@ -65,7 +65,7 @@ function convertToEmbedUrl(url) {
 }
 
 // ==========================================
-// FUNCIONES BACKEND CON MEJOR DEBUG
+// FUNCIONES BACKEND - SIN NO-CORS (YA FUNCIONA CON CORS)
 // ==========================================
 async function getStreamUrl() {
     try {
@@ -95,16 +95,17 @@ async function saveStreamUrl(url) {
 
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         });
 
-        console.log('✅ Petición enviada (no-cors)');
-        // Con no-cors no podemos leer la respuesta, pero la petición llega
-        return true;
+        console.log('📡 Response status:', response.status);
+        const data = await response.json();
+        console.log('📦 Respuesta del servidor:', data);
+
+        return data.success;
 
     } catch (error) {
         console.error('❌ Error al guardar URL:', error);
@@ -119,7 +120,6 @@ async function clearStreamUrl() {
 
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -128,8 +128,11 @@ async function clearStreamUrl() {
             })
         });
 
-        console.log('✅ Petición de limpieza enviada');
-        return true;
+        console.log('📡 Response status:', response.status);
+        const data = await response.json();
+        console.log('📦 Respuesta del servidor:', data);
+
+        return data.success;
 
     } catch (error) {
         console.error('❌ Error al limpiar URL:', error);
@@ -236,18 +239,9 @@ async function updateStream() {
             document.getElementById('currentUrl').textContent = url;
             document.getElementById('previewFrame').src = embedUrl;
             console.log('✅ Transmisión guardada:', url);
-
-            // Esperar 3 segundos y verificar que se guardó
-            setTimeout(async () => {
-                const verificar = await getStreamUrl();
-                if (verificar === url) {
-                    alert('✅ ¡Transmisión actualizada y VERIFICADA!\n\n🌍 Todos los visitantes la verán en 30 segundos.\n\n📋 URL para compartir:\n' + window.location.origin + window.location.pathname.replace('admin.html', ''));
-                } else {
-                    alert('✅ Transmisión enviada\n\n⏳ Verificando en Google Sheets...\nRecarga la página en unos segundos para confirmar.');
-                }
-            }, 3000);
+            alert('✅ ¡Transmisión actualizada correctamente!\n\n🌍 Todos los visitantes la verán en 30 segundos.\n\n📋 URL para compartir:\n' + window.location.origin + window.location.pathname.replace('admin.html', ''));
         } else {
-            alert('❌ Error al guardar.\n\nAbre la consola (F12) y revisa los mensajes de error.');
+            alert('❌ Error al guardar. Verifica:\n• Tu conexión a internet\n• Que hayas actualizado codigo.gs con doOptions()\n• Abre la consola (F12) para más detalles');
         }
     } else {
         alert('❌ URL no reconocida\n\nPlataformas soportadas:\n• YouTube (youtube.com, youtu.be)\n• Twitch (twitch.tv)\n• Vimeo (vimeo.com)\n• Facebook (facebook.com/videos)');
@@ -262,7 +256,7 @@ async function clearStream() {
             document.getElementById('videoUrlInput').value = '';
             document.getElementById('currentUrl').textContent = 'Ninguna configurada';
             document.getElementById('previewFrame').src = '';
-            alert('✅ Transmisión detenida\n\nRecarga la página en unos segundos para verificar.');
+            alert('✅ Transmisión detenida\n\nLos visitantes verán la pantalla de espera.');
         } else {
             alert('❌ Error al limpiar. Abre la consola (F12) para ver detalles.');
         }
