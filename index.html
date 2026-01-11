@@ -7,14 +7,51 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="stream-container">
+    <!-- Pantalla de espera -->
+    <div id="waitingScreen" class="waiting-screen">
+        <div class="waiting-content">
+            <div class="pulse-animation">
+                <div class="pulse-dot"></div>
+            </div>
+            <h1>⏳ Esperando transmisión...</h1>
+            <p>La transmisión comenzará pronto</p>
+        </div>
+    </div>
+
+    <!-- Contenedor de transmisión -->
+    <div id="streamContainer" class="stream-container" style="display: none;">
+        <!-- Header con título -->
+        <div class="stream-header">
+            <div class="live-badge">
+                <span class="live-dot"></span>
+                TRANSMISIÓN EN VIVO
+            </div>
+        </div>
+
+        <!-- Video principal -->
         <div class="video-wrapper">
-            <iframe 
-                id="videoFrame"
-                src=""
-                allowfullscreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share">
-            </iframe>
+            <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+        </div>
+
+        <!-- Footer con donaciones -->
+        <div class="stream-footer">
+            <div class="donation-section">
+                <h3>💖 Apoya esta transmisión</h3>
+                <div class="donation-content">
+                    <div class="donation-text">
+                        <p>¿Te gusta el contenido? ¡Apóyanos con una donación!</p>
+                        <p class="donation-methods">Envía tu Yape o Plin →</p>
+                    </div>
+                    <div class="donation-qr">
+                        <!-- Aquí va tu QR de Yape -->
+                        <img id="yapeQR" src="imagenes/yape.png" alt="Código QR Yape" onerror="this.style.display='none'; document.getElementById('qrPlaceholder').style.display='flex';">
+                        <div id="qrPlaceholder" class="qr-placeholder" style="display: none;">
+                            <p>📱</p>
+                            <small>Coloca tu imagen<br>"yape.jpg"</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
