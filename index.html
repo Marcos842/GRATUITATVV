@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transmisión en Vivo</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Librerías HLS para m3u8 -->
+    <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet">
 </head>
 <body>
     <!-- Pantalla de espera -->
@@ -28,9 +30,28 @@
             </div>
         </div>
 
-        <!-- Video principal -->
+        <!-- Contenedor de video (iframe o HLS) -->
         <div class="video-wrapper">
-            <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+            <!-- Player para m3u8 HLS -->
+            <video
+                id="hlsPlayer"
+                class="video-js vjs-big-play-centered hls-player"
+                controls
+                preload="auto"
+                data-setup='{"fluid": true, "responsive": true}'>
+                <p class="vjs-no-js">
+                    Para ver este video necesitas habilitar JavaScript.
+                </p>
+            </video>
+
+            <!-- Player iframe normal (backup) -->
+            <iframe 
+                id="videoFrame" 
+                class="normal-player"
+                allowfullscreen 
+                allow="autoplay; encrypted-media; fullscreen" 
+                style="display: none;">
+            </iframe>
         </div>
 
         <!-- Footer con donaciones -->
@@ -43,11 +64,10 @@
                         <p class="donation-methods">Envía tu Yape o Plin →</p>
                     </div>
                     <div class="donation-qr">
-                        <!-- Aquí va tu QR de Yape -->
                         <img id="yapeQR" src="imagenes/yape.png" alt="Código QR Yape" onerror="this.style.display='none'; document.getElementById('qrPlaceholder').style.display='flex';">
                         <div id="qrPlaceholder" class="qr-placeholder" style="display: none;">
                             <p>📱</p>
-                            <small>Coloca tu imagen<br>"yape.jpg"</small>
+                            <small>Coloca tu imagen<br>"imagenes/yape.png"</small>
                         </div>
                     </div>
                 </div>
@@ -55,6 +75,9 @@
         </div>
     </div>
 
+    <!-- Librerías HLS -->
+    <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@videojs/http-streaming@3.9.0/dist/videojs-http-streaming.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
