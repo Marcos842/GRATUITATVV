@@ -1,0 +1,308 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ========================================
+   ESTILOS PÁGINA PÚBLICA (index.html)
+======================================== */
+
+body:not(.admin-body) {
+    background: #000;
+    overflow: hidden;
+}
+
+.stream-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+
+.video-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* ========================================
+   ESTILOS PANEL ADMIN (admin.html)
+======================================== */
+
+.admin-body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+/* Login Screen */
+.login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.login-box {
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+}
+
+.login-box h1 {
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.login-box p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.login-box input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+.login-box input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.btn-login:hover {
+    transform: translateY(-2px);
+}
+
+.error-msg {
+    color: #e74c3c;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+/* Admin Panel */
+.admin-panel {
+    padding: 20px;
+}
+
+.admin-header {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.admin-header h1 {
+    color: #333;
+    font-size: 1.8rem;
+}
+
+.btn-logout {
+    padding: 10px 20px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-logout:hover {
+    background: #c0392b;
+}
+
+.admin-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.preview-section, .controls-section {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.preview-section h2, .controls-section h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+}
+
+.video-preview {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.video-preview iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.url-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.url-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.button-group-admin {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.btn-primary-admin, .btn-secondary-admin {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-primary-admin {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary-admin:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary-admin {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.btn-secondary-admin:hover {
+    background: #e0e0e0;
+}
+
+.current-url {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #667eea;
+}
+
+.current-url p {
+    color: #555;
+    word-break: break-all;
+    margin-top: 5px;
+}
+
+.info-box-admin {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.info-box-admin h3 {
+    color: #667eea;
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+.info-box-admin ul, .info-box-admin ol {
+    padding-left: 20px;
+    color: #555;
+}
+
+.info-box-admin li {
+    margin-bottom: 5px;
+}
+
+.info-box-admin code {
+    background: #e0e0e0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #d63384;
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+    .admin-container {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-header {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .admin-header h1 {
+        font-size: 1.5rem;
+    }
+}

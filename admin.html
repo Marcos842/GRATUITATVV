@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Transmisiones</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="admin-body">
+    <!-- Pantalla de login -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-box">
+            <h1>🔐 Acceso Administrador</h1>
+            <p>Ingresa tu contraseña para continuar</p>
+            <input type="password" id="passwordInput" placeholder="Contraseña" autocomplete="off">
+            <button class="btn-login" onclick="checkPassword()">Ingresar</button>
+            <p id="errorMsg" class="error-msg"></p>
+        </div>
+    </div>
+
+    <!-- Panel de administración -->
+    <div id="adminPanel" class="admin-panel" style="display: none;">
+        <div class="admin-header">
+            <h1>🎬 Panel de Control - Transmisiones</h1>
+            <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+        </div>
+
+        <div class="admin-container">
+            <!-- Vista previa del video -->
+            <div class="preview-section">
+                <h2>📺 Vista Previa</h2>
+                <div class="video-preview">
+                    <iframe 
+                        id="previewFrame"
+                        src=""
+                        allowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+                    </iframe>
+                </div>
+            </div>
+
+            <!-- Controles -->
+            <div class="controls-section">
+                <h2>⚙️ Configuración de Transmisión</h2>
+
+                <div class="form-group">
+                    <label for="videoUrlInput">🔗 URL del Video o Transmisión:</label>
+                    <input 
+                        type="text" 
+                        id="videoUrlInput" 
+                        placeholder="Ej: https://www.youtube.com/watch?v=ID_DEL_VIDEO"
+                        class="url-input"
+                    >
+                </div>
+
+                <div class="button-group-admin">
+                    <button class="btn-primary-admin" onclick="updateStream()">
+                        ✅ Actualizar Transmisión
+                    </button>
+                    <button class="btn-secondary-admin" onclick="clearStream()">
+                        🗑️ Limpiar
+                    </button>
+                </div>
+
+                <div class="current-url">
+                    <strong>📡 URL Actual:</strong>
+                    <p id="currentUrl">Ninguna configurada</p>
+                </div>
+
+                <div class="info-box-admin">
+                    <h3>📌 Plataformas Compatibles:</h3>
+                    <ul>
+                        <li>YouTube - Videos y transmisiones en vivo</li>
+                        <li>Twitch - Canales en directo</li>
+                        <li>Vimeo - Videos públicos</li>
+                        <li>Facebook Live - Videos embebidos</li>
+                    </ul>
+                </div>
+
+                <div class="info-box-admin">
+                    <h3>💡 Instrucciones:</h3>
+                    <ol>
+                        <li>Copia la URL de tu video o transmisión</li>
+                        <li>Pégala en el campo de arriba</li>
+                        <li>Haz clic en "Actualizar Transmisión"</li>
+                        <li>Tu audiencia verá el contenido en tiempo real</li>
+                    </ol>
+                </div>
+
+                <div class="info-box-admin">
+                    <h3>🔒 Seguridad:</h3>
+                    <p><strong>Tu contraseña actual:</strong> <code>admin123</code></p>
+                    <p>Para cambiarla, edita el archivo <code>script.js</code> línea 3</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
