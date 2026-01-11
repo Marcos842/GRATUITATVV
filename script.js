@@ -1,12 +1,8 @@
-// ==========================================
 // CONFIGURACIÓN
-// ==========================================
-const ADMIN_PASSWORD = "admin123"; // <-- CAMBIA ESTO
+const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
-// ==========================================
 // FUNCIONES PARA DETECTAR PLATAFORMAS
-// ==========================================
 function getYouTubeId(url) {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -34,39 +30,49 @@ function convertToEmbedUrl(url) {
     const youtubeId = getYouTubeId(url);
     if (youtubeId) {
         embedUrl = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0&showinfo=0&fs=1&iv_load_policy=3&disablekb=1`;
+        console.log('✅ Detectado: YouTube');
+        return embedUrl;
     }
 
     const twitchChannel = getTwitchChannel(url);
-    if (twitchChannel && !embedUrl) {
+    if (twitchChannel) {
         const isGitHubPages = window.location.hostname.includes('github.io');
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
         if (isGitHubPages) {
-            const domain = window.location.hostname;
-            embedUrl = `https://player.twitch.tv/?channel=${twitchChannel}&parent=${domain}&muted=false`;
+            embedUrl = `https://player.twitch.tv/?channel=${twitchChannel}&parent=${window.location.hostname}&muted=false`;
         } else if (isLocalhost) {
             embedUrl = `https://player.twitch.tv/?channel=${twitchChannel}&parent=localhost&muted=false`;
         } else {
             embedUrl = `https://player.twitch.tv/?channel=${twitchChannel}&parent=${window.location.hostname}&muted=false`;
         }
+        console.log('✅ Detectado: Twitch');
+        return embedUrl;
     }
 
     const vimeoId = getVimeoId(url);
-    if (vimeoId && !embedUrl) {
+    if (vimeoId) {
         embedUrl = `https://player.vimeo.com/video/${vimeoId}?autoplay=1&title=0&byline=0&portrait=0`;
+        console.log('✅ Detectado: Vimeo');
+        return embedUrl;
     }
 
     const facebookId = getFacebookVideoId(url);
-    if (facebookId && !embedUrl) {
+    if (facebookId) {
         embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`;
+        console.log('✅ Detectado: Facebook');
+        return embedUrl;
     }
 
-    return embedUrl;
+    if (url.includes('/embed') || url.includes('iframe') || url.includes('player')) {
+        console.log('✅ URL de embed detectada - Usando directamente');
+        return url;
+    }
+
+    console.log('⚠️ Plataforma desconocida - Intentando usar URL directamente');
+    return url;
 }
 
-// ==========================================
-// FUNCIONES BACKEND - SIN NO-CORS (YA FUNCIONA CON CORS)
-// ==========================================
 async function getStreamUrl() {
     try {
         console.log('🔍 Obteniendo URL desde:', APPS_SCRIPT_URL);
@@ -95,17 +101,15 @@ async function saveStreamUrl(url) {
 
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
+            mode: 'no-cors',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         });
 
-        console.log('📡 Response status:', response.status);
-        const data = await response.json();
-        console.log('📦 Respuesta del servidor:', data);
-
-        return data.success;
+        console.log('✅ Petición enviada (no-cors)');
+        return true;
 
     } catch (error) {
         console.error('❌ Error al guardar URL:', error);
@@ -120,6 +124,7 @@ async function clearStreamUrl() {
 
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
+            mode: 'no-cors',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -128,11 +133,8 @@ async function clearStreamUrl() {
             })
         });
 
-        console.log('📡 Response status:', response.status);
-        const data = await response.json();
-        console.log('📦 Respuesta del servidor:', data);
-
-        return data.success;
+        console.log('✅ Petición de limpieza enviada');
+        return true;
 
     } catch (error) {
         console.error('❌ Error al limpiar URL:', error);
@@ -140,9 +142,6 @@ async function clearStreamUrl() {
     }
 }
 
-// ==========================================
-// PÁGINA PÚBLICA (index.html)
-// ==========================================
 if (document.getElementById('videoFrame') && !document.getElementById('adminPanel')) {
     window.addEventListener('load', async function() {
         console.log('🔍 Cargando transmisión...');
@@ -162,14 +161,13 @@ if (document.getElementById('videoFrame') && !document.getElementById('adminPane
                 streamContainer.style.display = 'block';
                 console.log('✅ Video cargado correctamente');
             } else {
-                console.error('❌ No se pudo convertir la URL a formato embed');
+                console.error('❌ No se pudo procesar la URL');
             }
         } else {
             console.log('⏳ No hay transmisión configurada');
         }
     });
 
-    // Auto-actualizar cada 30 segundos
     setInterval(async function() {
         const currentSrc = document.getElementById('videoFrame').src;
         const savedUrl = await getStreamUrl();
@@ -182,9 +180,6 @@ if (document.getElementById('videoFrame') && !document.getElementById('adminPane
     }, 30000);
 }
 
-// ==========================================
-// PANEL DE ADMINISTRACIÓN (admin.html)
-// ==========================================
 function checkPassword() {
     const password = document.getElementById('passwordInput').value;
     const errorMsg = document.getElementById('errorMsg');
@@ -239,12 +234,20 @@ async function updateStream() {
             document.getElementById('currentUrl').textContent = url;
             document.getElementById('previewFrame').src = embedUrl;
             console.log('✅ Transmisión guardada:', url);
-            alert('✅ ¡Transmisión actualizada correctamente!\n\n🌍 Todos los visitantes la verán en 30 segundos.\n\n📋 URL para compartir:\n' + window.location.origin + window.location.pathname.replace('admin.html', ''));
+
+            setTimeout(async () => {
+                const verificar = await getStreamUrl();
+                if (verificar === url) {
+                    alert('✅ ¡Transmisión actualizada y VERIFICADA!\n\n🌍 Todos los visitantes la verán en 30 segundos.\n\n📋 URL para compartir:\n' + window.location.origin + window.location.pathname.replace('admin.html', ''));
+                } else {
+                    alert('✅ Transmisión enviada\n\n⏳ Verificando en Google Sheets...\nRecarga la página en unos segundos para confirmar.');
+                }
+            }, 3000);
         } else {
-            alert('❌ Error al guardar. Verifica:\n• Tu conexión a internet\n• Que hayas actualizado codigo.gs con doOptions()\n• Abre la consola (F12) para más detalles');
+            alert('❌ Error al guardar.\n\nAbre la consola (F12) y revisa los mensajes de error.');
         }
     } else {
-        alert('❌ URL no reconocida\n\nPlataformas soportadas:\n• YouTube (youtube.com, youtu.be)\n• Twitch (twitch.tv)\n• Vimeo (vimeo.com)\n• Facebook (facebook.com/videos)');
+        alert('⚠️ No se pudo procesar la URL\n\nAsegúrate de que sea una URL válida de streaming o embed.');
     }
 }
 
@@ -256,14 +259,13 @@ async function clearStream() {
             document.getElementById('videoUrlInput').value = '';
             document.getElementById('currentUrl').textContent = 'Ninguna configurada';
             document.getElementById('previewFrame').src = '';
-            alert('✅ Transmisión detenida\n\nLos visitantes verán la pantalla de espera.');
+            alert('✅ Transmisión detenida\n\nRecarga la página en unos segundos para verificar.');
         } else {
             alert('❌ Error al limpiar. Abre la consola (F12) para ver detalles.');
         }
     }
 }
 
-// Permitir Enter en login
 if (document.getElementById('passwordInput')) {
     document.getElementById('passwordInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -272,7 +274,6 @@ if (document.getElementById('passwordInput')) {
     });
 }
 
-// Permitir Enter en URL input
 if (document.getElementById('videoUrlInput')) {
     document.getElementById('videoUrlInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
