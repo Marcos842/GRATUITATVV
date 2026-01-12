@@ -1,12 +1,15 @@
-// SCRIPT.JS DEFINITIVO - V5 (CORREGIDO ERROR TECLADO)
+// SCRIPT.JS - VERSIÓN V6 MASTER (COMPLETO Y DEFINITIVO)
+// INCLUYE: Player Pro (YouTube/HLS), Fix Teclado, Soporte Admin y Limpieza de URLs
 const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
-// --- FUNCIONES DE LIMPIEZA ---
+// ==========================================
+// 1. FUNCIONES DE LIMPIEZA Y UTILIDADES
+// ==========================================
 function sanitizeUrl(url) {
     if (!url) return "";
     url = url.trim();
-    // Si hay dos URLs pegadas (ej: m3u8https://youtube...), cortamos en el segundo http
+    // Corrección para errores de copiado doble (ej: m3u8https://...)
     const secondHttp = url.indexOf("http", 4); 
     if (secondHttp > -1) {
         console.warn("⚠️ URL sucia detectada, cortando:", url);
@@ -15,7 +18,10 @@ function sanitizeUrl(url) {
     return url;
 }
 
-// --- DETECTORES DE PLATAFORMA ---
+// ==========================================
+// 2. DETECTORES DE PLATAFORMA (COMPLETOS)
+// ==========================================
+// Necesarios para que el Panel de Admin reconozca cualquier link
 function getYouTubeId(url) {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -37,13 +43,14 @@ function getFacebookVideoId(url) {
     return match ? match[1] : null;
 }
 
+// Convierte cualquier link a formato Embed (Usado principalmente por el Admin Panel)
 function convertToEmbedUrl(url) {
-    url = sanitizeUrl(url); // Limpiamos antes de procesar
-    let embedUrl = "";
-
+    url = sanitizeUrl(url);
+    
     const youtubeId = getYouTubeId(url);
     if (youtubeId) {
-        return `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&controls=1&modestbranding=1&rel=0`;
+        // Enlace especial para admin (con controles para verificar que funciona)
+        return `https://www.youtube.com/embed/${youtubeId}?autoplay=0&controls=1`;
     }
 
     const twitchChannel = getTwitchChannel(url);
@@ -54,40 +61,36 @@ function convertToEmbedUrl(url) {
 
     const vimeoId = getVimeoId(url);
     if (vimeoId) {
-        return `https://player.vimeo.com/video/${vimeoId}?autoplay=1`;
+        return `https://player.vimeo.com/video/${vimeoId}?autoplay=0`;
     }
 
     const facebookId = getFacebookVideoId(url);
     if (facebookId) {
-        return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`;
+        return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=false`;
     }
 
-    return url; // Retorno directo para HLS o iframes genéricos
+    return url; // Retorno directo para archivos directos o iframes genéricos
 }
 
-// --- COMUNICACIÓN CON GOOGLE SHEETS ---
+// ==========================================
+// 3. COMUNICACIÓN CON GOOGLE SHEETS (BACKEND)
+// ==========================================
 async function getStreamUrl() {
     try {
         const response = await fetch(APPS_SCRIPT_URL);
         const text = await response.text();
         let data;
         try {
-            data = JSON.parse(text);
-        } catch {
-            // Limpieza agresiva de JSONP
+            // Limpieza robusta de JSONP para evitar errores de sintaxis
             const clean = text.replace(/^\s*[\w\.]+\s*\((.*)\)\s*;?\s*$/, '$1');
-            try {
-                data = JSON.parse(clean);
-            } catch (e) {
-                console.error("Error parseando JSON limpio:", clean);
-                return "";
-            }
+            data = JSON.parse(clean);
+        } catch (e) {
+            console.error("Error parseando datos:", e);
+            return "";
         }
-
         const finalUrl = sanitizeUrl(data.url || "");
-        console.log("📦 URL Recibida (Limpia):", finalUrl);
+        console.log("📦 URL Recibida del servidor:", finalUrl);
         return finalUrl;
-
     } catch (e) {
         console.error("❌ Error de red:", e);
         return "";
@@ -95,7 +98,7 @@ async function getStreamUrl() {
 }
 
 async function saveStreamUrl(url) {
-    url = sanitizeUrl(url); // Limpiar antes de enviar
+    url = sanitizeUrl(url);
     try {
         await fetch(APPS_SCRIPT_URL, {
             method: "POST",
@@ -104,9 +107,7 @@ async function saveStreamUrl(url) {
             body: JSON.stringify({action: "update", url: url})
         });
         return true;
-    } catch {
-        return false;
-    }
+    } catch { return false; }
 }
 
 async function clearStreamUrl() {
@@ -118,108 +119,96 @@ async function clearStreamUrl() {
             body: JSON.stringify({action: "clear"})
         });
         return true;
-    } catch {
-        return false;
-    }
+    } catch { return false; }
 }
 
-// --- PLAYER PRINCIPAL (index.html) ---
-if (document.getElementById("videoFrame") && !document.getElementById("adminPanel")) {
-
-    function waitForVideoJS() {
-        return new Promise(resolve => {
-            if (typeof videojs !== 'undefined') return resolve();
-            let checks = 0;
-            const interval = setInterval(() => {
-                if (typeof videojs !== 'undefined' || checks > 50) { // 5 segundos max
-                    clearInterval(interval);
-                    resolve();
-                }
-                checks++;
-            }, 100);
-        });
-    }
+// ==========================================
+// 4. PLAYER PRINCIPAL "PRO" (index.html)
+// ==========================================
+// Detecta si estamos en la página principal (buscando el player) y no en el admin
+if (document.getElementById("mainPlayer") && !document.getElementById("adminPanel")) {
 
     window.addEventListener("load", async () => {
-        await waitForVideoJS();
-
         const url = await getStreamUrl();
         const ws = document.getElementById("waitingScreen");
         const sc = document.getElementById("streamContainer");
-        const iframe = document.getElementById("videoFrame");
-        const hls = document.getElementById("hlsPlayer");
+        
+        // Configuración Avanzada de Video.js (YouTube + HLS)
+        const player = videojs('mainPlayer', {
+            controls: true,       // Mostrar barra de control propia
+            autoplay: false,      // Autoplay false para evitar bloqueos de navegador
+            preload: 'auto',
+            fluid: true,          // Responsivo
+            techOrder: ['youtube', 'html5'], // Prioridad: 1. YouTube, 2. Archivos directos
+            youtube: {
+                ytControls: 0,    // 🔥 OCULTA LOS BOTONES ROJOS DE YOUTUBE
+                modestbranding: 1,
+                rel: 0,
+                showinfo: 0,
+                iv_load_policy: 3
+            },
+            html5: {
+                hls: {
+                    overrideNative: true,
+                    enableLowInitialPlaylist: true
+                }
+            }
+        });
 
         if (!url) {
-            console.log("⏳ Sin transmisión activa");
+            console.log("⏳ Esperando transmisión...");
             return;
         }
 
-        if (url.includes(".m3u8")) {
-            console.log("🔄 Modo HLS activado");
+        console.log("🎬 Iniciando Player Pro con:", url);
 
-            if (videojs.getPlayer('hlsPlayer')) {
-                videojs.getPlayer('hlsPlayer').dispose();
-            }
-
-            const player = videojs(hls, {
-                fluid: true,
-                controls: true,
-                autoplay: true,
-                preload: 'auto',
-                html5: {
-                    hls: {
-                        overrideNative: true,
-                        enableLowInitialPlaylist: true
-                    }
-                }
-            });
-
-            player.src({ src: url, type: "application/x-mpegURL" });
-
-            player.ready(() => {
-                var promise = player.play();
-                if (promise !== undefined) {
-                    promise.catch(error => {
-                        console.log("Autoplay bloqueado, esperando interacción usuario");
-                        player.muted(true);
-                        player.play();
-                    });
-                }
-                ws.style.display = "none";
-                sc.style.display = "block";
-                iframe.style.display = "none";
-                hls.style.display = "block";
-            });
-
-            player.on('error', function() {
-                console.warn("⚠️ Error en HLS, intentando fallback a iframe");
-                iframe.src = url;
-                hls.style.display = "none";
-                iframe.style.display = "block";
-            });
-
+        // Determinamos el tipo de contenido para Video.js
+        let type = "";
+        if (url.includes("youtube.com") || url.includes("youtu.be")) {
+            type = "video/youtube";
+        } else if (url.includes(".m3u8")) {
+            type = "application/x-mpegURL";
         } else {
-            console.log("🔄 Modo Iframe activado");
-            iframe.src = convertToEmbedUrl(url);
-            iframe.style.display = "block";
-            hls.style.display = "none";
-            ws.style.display = "none";
-            sc.style.display = "block";
+            type = "video/mp4"; // Intento genérico
         }
+
+        // Cargamos la fuente
+        player.src({ type: type, src: url });
+
+        // Evento: Cuando el video está listo para mostrarse
+        player.ready(() => {
+            ws.style.display = "none";    // Ocultar pantalla de espera
+            sc.style.display = "block";   // Mostrar pantalla de video
+            
+            // Intento de Autoplay Silenciado (Mejor compatibilidad móvil)
+            player.muted(true);
+            var promise = player.play();
+            if (promise !== undefined) {
+                promise.catch(error => {
+                    console.log("Autoplay bloqueado por el navegador. El usuario debe dar Play.");
+                    player.muted(false); // Regresamos el sonido por si acaso
+                });
+            }
+        });
     });
 
+    // Auto-Reload Inteligente: Verifica cambios cada 30 seg
     setInterval(async () => {
-        const currentSrc = document.getElementById("videoFrame").src;
         const incomingUrl = await getStreamUrl();
-
-        if (incomingUrl && !document.body.innerHTML.includes(incomingUrl)) {
-            console.log("Cambio detectado, recargando...");
+        const player = videojs('mainPlayer');
+        const currentSrc = player.src();
+        
+        // Solo recargar si hay una URL nueva y es diferente a la actual
+        if (incomingUrl && incomingUrl !== currentSrc && !currentSrc.includes(incomingUrl)) {
+            console.log("🔄 Cambio de transmisión detectado. Actualizando...");
             location.reload();
         }
     }, 30000);
 }
 
-// --- PANEL ADMIN (admin.html) ---
+// ==========================================
+// 5. LÓGICA DEL PANEL DE ADMIN (admin.html)
+// ==========================================
 function checkPassword() {
     const pw = document.getElementById("passwordInput").value;
     if (pw === ADMIN_PASSWORD) {
@@ -235,14 +224,18 @@ async function loadCurrentStream() {
     const url = await getStreamUrl();
     document.getElementById("videoUrlInput").value = url;
     document.getElementById("currentUrl").textContent = url || "Ninguna";
-    if (url) document.getElementById("previewFrame").src = convertToEmbedUrl(url);
+    
+    // Aquí usamos la función convertToEmbedUrl para que el admin vea CUALQUIER tipo de video
+    if (url) {
+        document.getElementById("previewFrame").src = convertToEmbedUrl(url);
+    }
 }
 
 async function updateStream() {
     let url = document.getElementById("videoUrlInput").value.trim();
     url = sanitizeUrl(url);
 
-    if (!url) return alert("URL requerida");
+    if (!url) return alert("⚠️ Ingresa una URL válida");
 
     document.getElementById("videoUrlInput").value = url;
     const ok = await saveStreamUrl(url);
@@ -250,27 +243,31 @@ async function updateStream() {
     if (ok) {
         document.getElementById("currentUrl").textContent = url;
         document.getElementById("previewFrame").src = convertToEmbedUrl(url);
-        alert("✅ Guardado correctamente");
+        alert("✅ Transmisión actualizada correctamente");
     } else {
-        alert("❌ Error al guardar");
+        alert("❌ Error al guardar en la base de datos");
     }
 }
 
 async function clearStream() {
-    if (confirm("¿Detener transmisión?")) {
+    if (confirm("¿Estás seguro de detener la transmisión? La audiencia verá la pantalla de espera.")) {
         await clearStreamUrl();
         document.getElementById("videoUrlInput").value = "";
         document.getElementById("currentUrl").textContent = "Ninguna";
         document.getElementById("previewFrame").src = "";
+        alert("🛑 Transmisión detenida.");
     }
 }
 
-// --- EVENTOS DE TECLADO (CORREGIDO) ---
+// ==========================================
+// 6. EVENTOS DE TECLADO (CORREGIDO)
+// ==========================================
+// Esto soluciona el problema de no poder escribir en la caja de texto
 document.addEventListener("DOMContentLoaded", () => {
     const pw = document.getElementById("passwordInput");
     const urlIn = document.getElementById("videoUrlInput");
 
-    // Usamos addEventListener para evitar conflictos de retorno
+    // Usamos addEventListener para no bloquear la escritura
     if (pw) {
         pw.addEventListener("keypress", (e) => {
             if (e.key === "Enter") checkPassword();
