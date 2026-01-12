@@ -553,60 +553,63 @@ body {
     }
 }
 
-/* --- ESTILOS NUEVOS PARA LA IA (V14) --- */
+/* --- ESTILOS V15 - SUBTÍTULOS VISIBLES (DEFINITIVO) --- */
 
-/* La caja donde aparece el texto */
+/* Caja de subtítulos mejorada */
 .ai-caption-box {
-    position: absolute;
-    bottom: 10%; /* Posición flotante sobre el video */
+    position: fixed; /* FIXED para que flote sobre todo, incluso scroll */
+    bottom: 15%;     /* Un poco más arriba del borde inferior */
     left: 50%;
     transform: translateX(-50%);
-    width: 90%;
+    width: 80%;
     max-width: 800px;
-    background-color: rgba(0, 0, 0, 0.7); /* Fondo oscuro semitransparente */
-    color: #ffd700; /* Amarillo cine */
+    background-color: rgba(0, 0, 0, 0.85); /* Fondo casi negro sólido */
+    color: #ffff00; /* Amarillo puro para máximo contraste */
     text-align: center;
-    font-size: 1.3rem;
+    font-size: 1.5rem; /* Letra más grande */
+    font-family: Arial, sans-serif;
     font-weight: bold;
-    padding: 15px;
-    border-radius: 8px;
-    z-index: 2000; /* Encima de todo */
-    display: none; /* Oculto por defecto */
-    text-shadow: 2px 2px 4px #000;
-    pointer-events: none; /* Click traspasa la caja */
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid #fff; /* Borde blanco para resaltar */
+    z-index: 99999 !important; /* Capa máxima absoluta */
+    display: none; 
+    text-shadow: 2px 2px 0px #000;
+    pointer-events: none; /* Dejar pasar clics */
 }
 
-/* El botón interruptor */
+/* Indicador de estado */
+.ai-indicator {
+    font-size: 0.9rem;
+    color: #00ff00;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* El botón interruptor (igual que antes) */
 .ai-toggle-btn {
-    background: #444;
+    background: #333;
     color: white;
-    border: 1px solid #666;
+    border: 1px solid #555;
     padding: 8px 15px;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
+    font-weight: bold;
     display: flex;
     align-items: center;
     gap: 8px;
-    white-space: nowrap;
 }
 
-.ai-toggle-btn:hover {
-    background: #555;
-}
-
-/* Estilo cuando está ENCENDIDO (ON) */
 .ai-active {
-    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
-    border-color: #ff0000;
-    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
-    animation: pulse-recording 2s infinite;
+    background: #ff0000 !important;
+    border-color: #ffcccc;
+    box-shadow: 0 0 15px #ff0000;
+    animation: pulse-recording 1.5s infinite;
 }
 
 @keyframes pulse-recording {
-    0% { opacity: 1; }
-    50% { opacity: 0.8; }
-    100% { opacity: 1; }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }
