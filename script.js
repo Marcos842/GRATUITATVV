@@ -1,4 +1,4 @@
-// SCRIPT.JS - VERSIÓN V25 (LÓGICA PURA, SIN HTML INCRUSTADO)
+// SCRIPT.JS - VERSIÓN V26 (LÓGICA ACTUALIZADA + LIMPIEZA DE TEXTO IA)
 const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
@@ -24,16 +24,12 @@ function isMobile() {
 // ================= 2. GUÍA INTELIGENTE (SOLO VISIBILIDAD) =================
 function toggleGuide() {
     const guide = document.getElementById('audioGuide');
-    // Buscamos los bloques que creamos en el HTML
     const pcContent = document.getElementById('guide-pc');
     const mobileContent = document.getElementById('guide-mobile');
 
     if (!guide) return;
 
     if (guide.style.display === 'none' || guide.style.display === '') {
-        // --- MOSTRAR MODAL ---
-        
-        // Decidir qué bloque mostrar según el dispositivo
         if (isMobile()) {
             if (mobileContent) mobileContent.style.display = 'block';
             if (pcContent) pcContent.style.display = 'none';
@@ -41,10 +37,8 @@ function toggleGuide() {
             if (mobileContent) mobileContent.style.display = 'none';
             if (pcContent) pcContent.style.display = 'block';
         }
-        
         guide.style.display = 'flex';
     } else {
-        // --- OCULTAR MODAL ---
         guide.style.display = 'none';
     }
 }
@@ -76,15 +70,30 @@ function updateSubtitleDisplay(text, isFinal) {
     const box = document.getElementById('aiCaptions');
     if (!text || text.length === 0) return;
 
+    // --- LÓGICA DE LIMPIEZA "PROFESIONAL" (NUEVO) ---
+    // 1. Dividimos el texto en palabras
+    let words = text.trim().split(/\s+/);
+    
+    // 2. Si hay más de 12 palabras, tomamos solo las últimas 12
+    const MAX_WORDS = 12; 
+    if (words.length > MAX_WORDS) {
+        // "..." indica que hay texto anterior, pero nos enfocamos en lo nuevo
+        text = "..." + words.slice(-MAX_WORDS).join(" ");
+    }
+
     clearTimeout(subtitleClearTimer);
     box.innerHTML = text;
     box.style.display = 'block';
 
     if (isFinal) {
+        // 3. Tiempo de lectura inteligente: 
+        // Mínimo 2 seg, o más tiempo si el texto es largo
+        let readingTime = Math.max(2000, text.length * 50); 
+        
         subtitleClearTimer = setTimeout(() => {
             box.style.display = 'none';
             box.innerHTML = '';
-        }, 3500); 
+        }, readingTime); 
     }
 }
 
