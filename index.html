@@ -6,7 +6,7 @@
     <title>Transmisión en Vivo</title>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=47">
     
     <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet">
 </head>
@@ -28,11 +28,13 @@
                 <span class="live-dot"></span> TRANSMISIÓN EN VIVO
             </div>
             
-            <div style="display: flex; gap: 10px;">
-                <button class="help-btn" onclick="toggleGuide()">❓ Configurar Audio</button>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <button class="help-btn" onclick="toggleGuide()">
+                    <span>❓</span> Configurar Subtitulos
+                </button>
                 
                 <button id="btnAI" class="ai-toggle-btn" onclick="toggleAI()">
-                    <span>🎙️</span> Subtitulo IA prueba 80% (OFF)
+                    <span>🎙️</span> Subtítulos IA 80%
                 </button>
             </div>
         </div>
@@ -125,6 +127,6 @@
     <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-youtube/2.6.1/Youtube.min.js"></script>
     
-    <script src="script.js?v=24"></script>
+    <script src="script.js?v=42"></script>
 </body>
 </html>
