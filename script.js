@@ -1,4 +1,4 @@
-// SCRIPT.JS - VERSIÓN V26 (LÓGICA ACTUALIZADA + LIMPIEZA DE TEXTO IA)
+// SCRIPT.JS - VERSIÓN V46 (FINAL: ANTI-MURO + ANTI-PAUSA MÓVIL)
 const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
@@ -21,7 +21,21 @@ function isMobile() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-// ================= 2. GUÍA INTELIGENTE (SOLO VISIBILIDAD) =================
+// === NUEVO: FUNCIÓN GUARDIÁN PARA MÓVILES (SOLUCIONA EL CORTE) ===
+function forceVideoResume() {
+    // Solo actuamos si es celular y la IA está prendida
+    if (!isMobile() || !isAiActive) return;
+
+    const player = videojs.getPlayers()['mainPlayer'];
+    
+    // Si el video se pausó involuntariamente, le damos play
+    if (player && player.paused()) {
+        console.log("📱 Mobile Guard: Forzando Play tras interrupción de micro...");
+        player.play().catch(e => console.log("⚠️ Auto-play prevenido por navegador"));
+    }
+}
+
+// ================= 2. GUÍA INTELIGENTE =================
 function toggleGuide() {
     const guide = document.getElementById('audioGuide');
     const pcContent = document.getElementById('guide-pc');
@@ -65,20 +79,16 @@ function getEmbedUrl(url) {
     return url; 
 }
 
-// ================= 4. LÓGICA IA (PROFESIONAL / BLOQUES) =================
+// ================= 4. LÓGICA IA (OPTIMIZADA) =================
 function updateSubtitleDisplay(text, isFinal) {
     const box = document.getElementById('aiCaptions');
     if (!text || text.length === 0) return;
 
-    // --- LÓGICA DE LIMPIEZA "PROFESIONAL" (NUEVO) ---
-    // 1. Dividimos el texto en palabras
+    // Lógica Anti-Muro (Ventana Deslizante)
     let words = text.trim().split(/\s+/);
-    
-    // 2. Si hay más de 12 palabras, tomamos solo las últimas 12
-    const MAX_WORDS = 12; 
+    const MAX_WORDS = 14; 
     if (words.length > MAX_WORDS) {
-        // "..." indica que hay texto anterior, pero nos enfocamos en lo nuevo
-        text = "..." + words.slice(-MAX_WORDS).join(" ");
+        text = words.slice(-MAX_WORDS).join(" ");
     }
 
     clearTimeout(subtitleClearTimer);
@@ -86,14 +96,10 @@ function updateSubtitleDisplay(text, isFinal) {
     box.style.display = 'block';
 
     if (isFinal) {
-        // 3. Tiempo de lectura inteligente: 
-        // Mínimo 2 seg, o más tiempo si el texto es largo
-        let readingTime = Math.max(2000, text.length * 50); 
-        
         subtitleClearTimer = setTimeout(() => {
             box.style.display = 'none';
             box.innerHTML = '';
-        }, readingTime); 
+        }, 4000); 
     }
 }
 
@@ -105,34 +111,38 @@ function initAI() {
         recognition.interimResults = true; 
         recognition.lang = 'es-ES'; 
 
-        recognition.onstart = () => console.log("🎤 IA Activa...");
+        recognition.onstart = () => {
+            console.log("🎤 IA Activa...");
+            // PARCHE MOVIL: Forzamos play al arrancar micro
+            setTimeout(forceVideoResume, 500); 
+        };
 
         recognition.onresult = (event) => {
-            let finalTranscript = '';
-            let interimTranscript = '';
-
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
-            }
+            const lastIndex = event.results.length - 1;
+            const transcript = event.results[lastIndex][0].transcript;
+            const isFinal = event.results[lastIndex].isFinal;
             
-            if (finalTranscript) {
-                updateSubtitleDisplay(finalTranscript, true);
-            } else if (interimTranscript) {
-                updateSubtitleDisplay(interimTranscript, false);
+            if (transcript.trim().length > 0) {
+                updateSubtitleDisplay(transcript, isFinal);
             }
         };
 
-        recognition.onend = () => { if (isAiActive) recognition.start(); };
+        recognition.onend = () => { 
+            if (isAiActive) {
+                recognition.start();
+                // PARCHE MOVIL: Forzamos play al reiniciar ciclo
+                setTimeout(forceVideoResume, 500);
+            }
+        };
+
         recognition.onerror = (event) => {
             console.warn("⚠️ IA Error:", event.error);
             if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                 toggleAI(true); 
                 alert("❌ ERROR: Revisa permisos de micrófono.");
             }
+            // PARCHE MOVIL: Forzamos play si hubo error
+            forceVideoResume();
         };
     } else {
         const btn = document.getElementById('btnAI');
@@ -147,7 +157,7 @@ function toggleAI(forceOff = false) {
     if (forceOff || isAiActive) {
         if (recognition) recognition.stop();
         isAiActive = false;
-        btn.innerHTML = "<span>🎙️</span> Subtitulo IA (OFF)";
+        btn.innerHTML = "<span>🎙️</span> Subtítulos IA (OFF)";
         btn.classList.remove("ai-active");
         box.style.display = 'none';
         clearTimeout(subtitleClearTimer);
@@ -155,11 +165,13 @@ function toggleAI(forceOff = false) {
         try {
             recognition.start();
             isAiActive = true;
-            btn.innerHTML = "<span>🔴</span> Subtitulo IA (ON)";
+            btn.innerHTML = "<span>🔴</span> Subtítulos IA (ON)";
             btn.classList.add("ai-active");
             updateSubtitleDisplay("Escuchando...", true);
 
-            // Abrir guía automáticamente si es la primera vez
+            // PARCHE MOVIL: Asegurar play inmediato
+            forceVideoResume();
+
             if (!sessionStorage.getItem('guideShown')) {
                 toggleGuide();
                 sessionStorage.setItem('guideShown', 'true');
