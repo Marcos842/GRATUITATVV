@@ -28,9 +28,13 @@
                 <span class="live-dot"></span> TRANSMISIÓN EN VIVO
             </div>
             
-            <button id="btnAI" class="ai-toggle-btn" onclick="toggleAI()">
-                <span>🎙️</span> Subtitulo IA prueba 80% (OFF)
-            </button>
+            <div style="display: flex; gap: 10px;">
+                <button class="help-btn" onclick="toggleGuide()">❓ Configurar Audio</button>
+                
+                <button id="btnAI" class="ai-toggle-btn" onclick="toggleAI()">
+                    <span>🎙️</span> Subtitulo IA prueba 80% (OFF)
+                </button>
+            </div>
         </div>
 
         <div class="video-wrapper">
@@ -68,9 +72,40 @@
         </div>
     </div>
 
+    <div id="audioGuide" class="modal-guide" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-btn" onclick="toggleGuide()">&times;</span>
+            <h2 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">🔧 Guía de Configuración (Paso a Paso)</h2>
+            
+            <div style="margin-top: 15px;">
+                <h4 style="color: #333; margin-bottom: 5px;">PASO 1: Activar en Windows 💻</h4>
+                <ul style="padding-left: 20px; color: #555; font-size: 0.95rem; margin-bottom: 15px;">
+                    <li>Ve a "Panel de Control de Sonido" → Pestaña <strong>Grabar</strong>.</li>
+                    <li>Si no ves "Mezcla Estéreo", haz clic derecho en el fondo blanco y marca <strong>"Mostrar dispositivos deshabilitados"</strong>.</li>
+                    <li>Haz clic derecho sobre "Mezcla Estéreo" y dale a <strong>Activar</strong>.</li>
+                </ul>
+
+                <h4 style="color: #d63384; margin-bottom: 5px;">PASO 2: Selección en el Navegador (IMPORTANTE) 🌐</h4>
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Aquí es donde la mayoría falla. Sigue esto exacto:</p>
+                <ol style="padding-left: 20px; line-height: 1.6; font-weight: bold; color: #333;">
+                    <li>Mira arriba a la izquierda, en la barra de dirección (donde está la URL).</li>
+                    <li>Haz clic en el icono del candado 🔒 o el micrófono 🎙️.</li>
+                    <li>Busca la opción "Micrófono" y haz clic en la lista desplegable.</li>
+                    <li style="color: #d63384; background: #fff0f5; padding: 2px 5px; border-radius: 4px;">CAMBIA "Predeterminado" POR "Mezcla estéreo (Stereo Mix)".</li>
+                </ol>
+
+                <h4 style="color: #333; margin-top: 15px; margin-bottom: 5px;">PASO 3: Finalizar ✅</h4>
+                <ul style="padding-left: 20px; color: #555;">
+                    <li>Presiona la tecla <strong>F5</strong> para recargar la página.</li>
+                    <li>Sube el volumen de tus parlantes (El video debe sonar).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-youtube/2.6.1/Youtube.min.js"></script>
     
-    <script src="script.js?v=15"></script>
+    <script src="script.js?v=16"></script>
 </body>
 </html>
