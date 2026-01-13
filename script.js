@@ -1,4 +1,4 @@
-// SCRIPT.JS - VERSIÓN V50 (FINAL: ANTI-FANTASMA + ANTI-ZOMBIE + TIEMPO EXTRA)
+// SCRIPT.JS - VERSIÓN V55 (RELEVO INSTANTÁNEO + PERSISTENCIA VISUAL)
 const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
@@ -6,7 +6,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8U
 let recognition;
 let isAiActive = false;
 let subtitleClearTimer; 
-let lastAiUpdate = 0; // Variable para controlar si la IA sigue viva
+let lastAiUpdate = 0; 
 
 // ================= 1. FUNCIONES UTILITARIAS =================
 function sanitizeUrl(url) {
@@ -22,16 +22,14 @@ function isMobile() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-// === FUNCIÓN GUARDIÁN VIDEO (ANTI-PAUSA MÓVIL) ===
+// === GUARDIÁN DE VIDEO (ANTI-PAUSA INSTANTÁNEO) ===
 function forceVideoResume() {
-    // Solo actuamos si es celular y la IA está prendida
     if (!isMobile() || !isAiActive) return;
-
     const player = videojs.getPlayers()['mainPlayer'];
     
-    // Si el video se pausó involuntariamente, le damos play
+    // Si el sistema pausó el video, le damos play SIN ESPERAS
     if (player && player.paused()) {
-        console.log("📱 Mobile Guard: Reactivando video...");
+        console.log("⚡ Mobile: Play Forzado Instantáneo");
         player.play().catch(e => {});
     }
 }
@@ -43,7 +41,6 @@ function toggleGuide() {
     const mobileContent = document.getElementById('guide-mobile');
 
     if (!guide) return;
-
     if (guide.style.display === 'none' || guide.style.display === '') {
         if (isMobile()) {
             if (mobileContent) mobileContent.style.display = 'block';
@@ -69,9 +66,7 @@ function getEmbedUrl(url) {
         const parent = window.location.hostname ? window.location.hostname : "localhost";
         return `https://player.twitch.tv/?channel=${twitch[1]}&parent=${parent}&muted=false`;
     }
-
     if (url.includes("facebook.com")) return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`;
-
     if (url.includes("youtu")) {
         const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
         const ytId = (match && match[2].length === 11) ? match[2] : null;
@@ -80,31 +75,39 @@ function getEmbedUrl(url) {
     return url; 
 }
 
-// ================= 4. LÓGICA IA (ANTI-MURO + ANTI-FANTASMA) =================
+// ================= 4. LÓGICA IA (PERSISTENCIA VISUAL) =================
 function updateSubtitleDisplay(text, isFinal) {
     const box = document.getElementById('aiCaptions');
     if (!text || text.length === 0) return;
 
-    // Marcamos que la IA está escuchando (reset del watchdog)
-    lastAiUpdate = Date.now();
+    lastAiUpdate = Date.now(); // Confirmamos que la IA está viva
 
-    // 1. Lógica Anti-Muro (Máximo 14 palabras)
+    // Anti-Muro (Máximo 14 palabras)
     let words = text.trim().split(/\s+/);
     const MAX_WORDS = 14; 
     if (words.length > MAX_WORDS) {
         text = words.slice(-MAX_WORDS).join(" ");
     }
 
+    // Limpiamos el timer anterior para que NO borre el texto si sigues hablando
     clearTimeout(subtitleClearTimer);
+    
     box.innerHTML = text;
     box.style.display = 'block';
 
+    // ESTRATEGIA: PERSISTENCIA VISUAL
+    // Si la frase terminó, la dejamos en pantalla el tiempo que tú definas abajo.
+    // Esto tapa el "hueco" mientras la IA se reinicia en el celular.
     if (isFinal) {
-        // TIEMPO EXTENDIDO: 5000ms (5 segundos) para facilitar lectura
+        
+        // 👇👇 AQUÍ ES DONDE CAMBIAS LOS SEGUNDOS 👇👇
+        // 6000 = 6 segundos. (Puedes poner 7000, 8000, etc.)
+        const TIEMPO_EN_PANTALLA = 8000; 
+
         subtitleClearTimer = setTimeout(() => {
             box.style.display = 'none';
             box.innerHTML = '';
-        }, 5000); 
+        }, TIEMPO_EN_PANTALLA); 
     }
 }
 
@@ -117,19 +120,17 @@ function initAI() {
         recognition.lang = 'es-ES'; 
 
         recognition.onstart = () => {
-            console.log("🎤 IA Activa...");
+            console.log("🎤 IA: Conectada");
             lastAiUpdate = Date.now();
-            setTimeout(forceVideoResume, 500); 
+            forceVideoResume(); // Play al video inmediatamente
         };
 
         recognition.onresult = (event) => {
             lastAiUpdate = Date.now();
 
-            // --- CORRECCIÓN CLAVE: ANTI-FANTASMA ---
-            // Si la memoria de Chrome tiene más de 2 frases acumuladas, 
-            // reiniciamos el motor para borrar el historial viejo y evitar el "muro masivo".
+            // Anti-Fantasma (Limpiar memoria si se llena de basura)
             if (event.results.length > 2) {
-                recognition.abort(); // Esto borra la memoria y reinicia solo
+                recognition.abort(); 
                 return; 
             }
 
@@ -142,34 +143,45 @@ function initAI() {
             }
         };
 
+        // === CERO TIEMPOS MUERTOS ===
         recognition.onend = () => { 
             if (isAiActive) {
-                recognition.start();
-                setTimeout(forceVideoResume, 500);
+                console.log("🔄 IA: Reinicio Instantáneo...");
+                // No usamos setTimeout. Reiniciamos YA.
+                try {
+                    recognition.start();
+                } catch(e) {
+                    // Si falla por "ya iniciado", ignoramos.
+                }
+                forceVideoResume();
             }
         };
 
         recognition.onerror = (event) => {
+            // Si hay error, no esperamos. Abortamos y dejamos que onend reinicie.
             console.warn("⚠️ IA Error:", event.error);
             if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                 toggleAI(true); 
-                alert("❌ ERROR: Revisa permisos de micrófono.");
+                alert("❌ Revisa micrófono.");
+            } else {
+                // Para cualquier otro error, corte duro y reinicio rápido
+                recognition.abort();
             }
             forceVideoResume();
         };
 
-        // --- WATCHDOG (ANTI-ZOMBIE PARA CELULAR) ---
-        // Si el celular bloquea el micro por el video, esto lo revive a los 8 segundos.
+        // Watchdog de emergencia (Por si el reinicio instantáneo falla)
         setInterval(() => {
             if (isAiActive && isMobile()) {
-                const tiempoSinAudio = Date.now() - lastAiUpdate;
-                if (tiempoSinAudio > 8000) {
-                    console.log("💀 IA ZOMBIE - REINICIANDO FORZOSAMENTE...");
+                const tiempoSinSenal = Date.now() - lastAiUpdate;
+                // Si lleva 5 seg (antes 8) sin señales, reinicio forzoso
+                if (tiempoSinSenal > 5000) { 
+                    console.log("💀 IA ZOMBIE - REINICIO FORZADO");
                     recognition.abort(); 
                     lastAiUpdate = Date.now();
                 }
             }
-        }, 2000);
+        }, 1000); // Revisar cada segundo
 
     } else {
         const btn = document.getElementById('btnAI');
@@ -180,6 +192,7 @@ function initAI() {
 function toggleAI(forceOff = false) {
     const btn = document.getElementById('btnAI');
     const box = document.getElementById('aiCaptions');
+    const player = videojs.getPlayers()['mainPlayer'];
 
     if (forceOff || isAiActive) {
         if (recognition) recognition.stop();
@@ -194,10 +207,19 @@ function toggleAI(forceOff = false) {
             isAiActive = true;
             btn.innerHTML = "<span>🔴</span> Subtítulos IA (ON)";
             btn.classList.add("ai-active");
+            
+            // Mensaje inicial para que el usuario sepa que está cargando
             updateSubtitleDisplay("Escuchando...", true);
             
             lastAiUpdate = Date.now();
             forceVideoResume();
+
+            // Parche extra: Detector de pausa nativo
+            if (player) {
+                player.on('pause', () => {
+                    if (isMobile() && isAiActive) forceVideoResume();
+                });
+            }
 
             if (!sessionStorage.getItem('guideShown')) {
                 toggleGuide();
@@ -207,7 +229,7 @@ function toggleAI(forceOff = false) {
     }
 }
 
-// ================= 5. BACKEND & CARGA =================
+// ================= 5. BACKEND =================
 async function getStreamUrl() {
     try {
         const r = await fetch(APPS_SCRIPT_URL);
@@ -250,7 +272,6 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
                 youtube: { ytControls: 0, modestbranding: 1, rel: 0, showinfo: 0, iv_load_policy: 3 }
             });
             player.ready(() => { ws.style.display = "none"; sc.style.display = "block"; player.muted(true); });
-
         } else {
             if (videojs.getPlayers()['mainPlayer']) videojs('mainPlayer').dispose();
             else vjsEl.style.display = "none";
