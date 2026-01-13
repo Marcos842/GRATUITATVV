@@ -199,63 +199,97 @@ body {
    3. ESTILOS DE LA IA Y SUBTÍTULOS
 ======================================== */
 
-/* Caja de subtítulos flotante */
+/* Caja de subtítulos profesional */
 .ai-caption-box {
     position: fixed;
-    bottom: 15%;
+    bottom: 10%;           /* Separación ergonómica del borde inferior */
     left: 50%;
     transform: translateX(-50%);
-    width: 80%;
-    max-width: 800px;
-    background-color: rgba(0, 0, 0, 0.85); /* Fondo negro semitransparente */
-    color: #ffff00; /* Texto Amarillo */
+    
+    width: auto;           /* Se ajusta al tamaño del texto */
+    max-width: 85%;        /* Límite para que no toque los bordes de la pantalla */
+    
+    /* Tipografía moderna y limpia */
+    color: #ffffff;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 1.6rem;     /* Tamaño grande y legible */
+    font-weight: 600;      /* Seminegrita */
+    line-height: 1.3;
     text-align: center;
-    font-size: 1.5rem;
-    font-family: Arial, sans-serif;
-    font-weight: bold;
-    padding: 20px;
-    border-radius: 12px;
-    border: 2px solid #fff;
-    z-index: 99999 !important; /* Capa alta */
-    display: none; 
-    text-shadow: 2px 2px 0px #000;
-    pointer-events: none; /* Permite clics a través de la caja */
+    
+    /* Sombra fuerte (Outline) para leerse sobre cualquier fondo */
+    text-shadow: 
+        2px 2px 0 #000, 
+        -1px -1px 0 #000,  
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+    
+    /* Fondo redondeado y sutil (Mejora estética drástica) */
+    background-color: rgba(0, 0, 0, 0.5); 
+    padding: 12px 24px;
+    border-radius: 30px;
+    
+    z-index: 99999 !important;
+    display: none;         /* Controlado por JS */
+    pointer-events: none;  /* El usuario puede hacer clic a través del texto */
+    
+    /* Animación de entrada */
+    animation: fadeSlideUp 0.3s ease-out forwards;
 }
 
-/* Texto verde "ESCUCHANDO..." */
+/* Animación: El texto sube suavemente al aparecer */
+@keyframes fadeSlideUp {
+    0% { opacity: 0; transform: translate(-50%, 20px); }
+    100% { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Indicador "Escuchando..." (Discreto) */
 .ai-indicator {
-    font-size: 0.9rem;
-    color: #00ff00;
-    margin-bottom: 5px;
+    display: block;
+    font-size: 0.8rem;
+    color: #4ade80; /* Verde neón suave */
+    margin-bottom: 4px;
     text-transform: uppercase;
     letter-spacing: 2px;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
 }
 
-/* Botón ON/OFF */
+/* Botón ON/OFF (Estilo Cápsula) */
 .ai-toggle-btn {
-    background: #333;
+    background: rgba(0, 0, 0, 0.6);
     color: white;
-    border: 1px solid #555;
-    padding: 8px 15px;
-    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 20px;
+    border-radius: 50px;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 600;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
 }
 
+.ai-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Estado Activo (Grabando - Rojo Pulsante) */
 .ai-active {
-    background: #ff0000 !important;
-    border-color: #ffcccc;
-    box-shadow: 0 0 15px #ff0000;
-    animation: pulse-recording 1.5s infinite;
+    background: rgba(220, 38, 38, 0.9) !important; /* Rojo intenso */
+    border-color: #fca5a5;
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+    animation: pulse-recording 2s infinite;
 }
 
 @keyframes pulse-recording {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+    0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
 }
 
 /* ========================================
