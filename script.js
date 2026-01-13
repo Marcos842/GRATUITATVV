@@ -1,13 +1,13 @@
-// SCRIPT.JS - VERSIÓN V16 (FINAL GITHUB PAGES: LIMITADOR + AYUDA)
+// SCRIPT.JS - VERSIÓN V25 (LÓGICA PURA, SIN HTML INCRUSTADO)
 const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
 // ================= VARIABLES GLOBALES IA =================
 let recognition;
 let isAiActive = false;
-let captionTimeout;
+let subtitleClearTimer; 
 
-// ================= 1. FUNCIONES UTILITARIAS Y AYUDA =================
+// ================= 1. FUNCIONES UTILITARIAS =================
 function sanitizeUrl(url) {
     if (!url) return "";
     url = url.trim();
@@ -16,47 +16,79 @@ function sanitizeUrl(url) {
     return url;
 }
 
-// NUEVO: Función para abrir/cerrar la guía de configuración
+// DETECTOR DE DISPOSITIVO
+function isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// ================= 2. GUÍA INTELIGENTE (SOLO VISIBILIDAD) =================
 function toggleGuide() {
     const guide = document.getElementById('audioGuide');
-    if (guide) {
-        // Si está oculto (none) o vacío, lo ponemos flexible. Si no, lo ocultamos.
-        guide.style.display = (guide.style.display === 'none' || guide.style.display === '') ? 'flex' : 'none';
+    // Buscamos los bloques que creamos en el HTML
+    const pcContent = document.getElementById('guide-pc');
+    const mobileContent = document.getElementById('guide-mobile');
+
+    if (!guide) return;
+
+    if (guide.style.display === 'none' || guide.style.display === '') {
+        // --- MOSTRAR MODAL ---
+        
+        // Decidir qué bloque mostrar según el dispositivo
+        if (isMobile()) {
+            if (mobileContent) mobileContent.style.display = 'block';
+            if (pcContent) pcContent.style.display = 'none';
+        } else {
+            if (mobileContent) mobileContent.style.display = 'none';
+            if (pcContent) pcContent.style.display = 'block';
+        }
+        
+        guide.style.display = 'flex';
+    } else {
+        // --- OCULTAR MODAL ---
+        guide.style.display = 'none';
     }
 }
 
-// ================= 2. CONVERTIDOR DE ENLACES =================
+// ================= 3. CONVERTIDOR DE ENLACES =================
 function getEmbedUrl(url) {
     url = sanitizeUrl(url);
-    
-    // TikTok
     const tiktok = url.match(/tiktok\.com\/@.*\/video\/(\d+)/);
     if (tiktok) return `https://www.tiktok.com/embed/v2/${tiktok[1]}`;
     
-    // Twitch (Adaptado para GitHub Pages)
     const twitch = url.match(/twitch\.tv\/([a-zA-Z0-9_]+)/);
     if (twitch) {
-        // Detecta si estamos en localhost o en una web real (github.io)
         const parent = window.location.hostname ? window.location.hostname : "localhost";
         return `https://player.twitch.tv/?channel=${twitch[1]}&parent=${parent}&muted=false`;
     }
 
-    // Facebook
     if (url.includes("facebook.com")) return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`;
 
-    // YouTube
     if (url.includes("youtu")) {
         const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
         const ytId = (match && match[2].length === 11) ? match[2] : null;
         if (ytId) return `https://www.youtube.com/embed/${ytId}?autoplay=0`;
     }
-
     return url; 
 }
 
-// ================= 3. LÓGICA DE IA (RECONOCIMIENTO DE VOZ) =================
+// ================= 4. LÓGICA IA (PROFESIONAL / BLOQUES) =================
+function updateSubtitleDisplay(text, isFinal) {
+    const box = document.getElementById('aiCaptions');
+    if (!text || text.length === 0) return;
+
+    clearTimeout(subtitleClearTimer);
+    box.innerHTML = text;
+    box.style.display = 'block';
+
+    if (isFinal) {
+        subtitleClearTimer = setTimeout(() => {
+            box.style.display = 'none';
+            box.innerHTML = '';
+        }, 3500); 
+    }
+}
+
 function initAI() {
-    // Verificamos compatibilidad (Chrome/Edge)
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
@@ -64,9 +96,7 @@ function initAI() {
         recognition.interimResults = true; 
         recognition.lang = 'es-ES'; 
 
-        const box = document.getElementById('aiCaptions');
-
-        recognition.onstart = () => console.log("🎤 Micrófono activado...");
+        recognition.onstart = () => console.log("🎤 IA Activa...");
 
         recognition.onresult = (event) => {
             let finalTranscript = '';
@@ -80,33 +110,19 @@ function initAI() {
                 }
             }
             
-            // --- NUEVO: LIMITADOR DE TEXTO (SOLUCIÓN A LA ACUMULACIÓN) ---
-            let textToShow = finalTranscript || interimTranscript;
-            
-            // Si el texto supera los 130 caracteres (aprox 3 líneas), cortamos lo antiguo
-            if (textToShow.length > 130) {
-                textToShow = "..." + textToShow.slice(-130); 
-            }
-            // ------------------------------------------------------------
-            
-            if (textToShow.length > 0) {
-                box.innerHTML = `<div class="ai-indicator">👂 ESCUCHANDO...</div>${textToShow}`;
-                box.style.display = 'block';
-
-                clearTimeout(captionTimeout);
-                captionTimeout = setTimeout(() => {
-                    box.style.display = 'none';
-                }, 4000);
+            if (finalTranscript) {
+                updateSubtitleDisplay(finalTranscript, true);
+            } else if (interimTranscript) {
+                updateSubtitleDisplay(interimTranscript, false);
             }
         };
 
         recognition.onend = () => { if (isAiActive) recognition.start(); };
-
         recognition.onerror = (event) => {
             console.warn("⚠️ IA Error:", event.error);
             if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                 toggleAI(true); 
-                alert("❌ ERROR: Acceso denegado al micrófono.\nVerifica el candadito 🔒 (HTTPS) y tu configuración.");
+                alert("❌ ERROR: Revisa permisos de micrófono.");
             }
         };
     } else {
@@ -115,42 +131,35 @@ function initAI() {
     }
 }
 
-// Función del botón ON/OFF
 function toggleAI(forceOff = false) {
     const btn = document.getElementById('btnAI');
     const box = document.getElementById('aiCaptions');
 
     if (forceOff || isAiActive) {
-        // --- APAGAR ---
         if (recognition) recognition.stop();
         isAiActive = false;
-        btn.innerHTML = "<span>🎙️</span> Subtitulo IA prueba 80% (OFF)";
+        btn.innerHTML = "<span>🎙️</span> Subtitulo IA (OFF)";
         btn.classList.remove("ai-active");
         box.style.display = 'none';
+        clearTimeout(subtitleClearTimer);
     } else {
-        // --- ENCENDER ---
         try {
             recognition.start();
             isAiActive = true;
-            btn.innerHTML = "<span>🔴</span> Subtitulo IA prueba 80% (ON)";
+            btn.innerHTML = "<span>🔴</span> Subtitulo IA (ON)";
             btn.classList.add("ai-active");
-            
-            box.innerHTML = `<div class="ai-indicator">👂 INICIANDO...</div>Sube el volumen...`;
-            box.style.display = 'block';
+            updateSubtitleDisplay("Escuchando...", true);
 
-            // NUEVO: Si es la primera vez que lo enciende, mostrar la guía automáticamente
+            // Abrir guía automáticamente si es la primera vez
             if (!sessionStorage.getItem('guideShown')) {
-                toggleGuide(); // Abre el modal
-                sessionStorage.setItem('guideShown', 'true'); // Marca como visto
+                toggleGuide();
+                sessionStorage.setItem('guideShown', 'true');
             }
-
-        } catch (e) {
-            console.error(e);
-        }
+        } catch (e) { console.error(e); }
     }
 }
 
-// ================= 4. CONEXIÓN CON BACKEND =================
+// ================= 5. BACKEND & CARGA =================
 async function getStreamUrl() {
     try {
         const r = await fetch(APPS_SCRIPT_URL);
@@ -166,11 +175,8 @@ async function clearStreamUrl() {
     try { await fetch(APPS_SCRIPT_URL, {method: "POST", mode: "no-cors", headers: {"Content-Type":"application/json"}, body: JSON.stringify({action:"clear"})}); return true; } catch { return false; }
 }
 
-// ================= 5. LÓGICA PRINCIPAL DEL REPRODUCTOR =================
 if (document.getElementById("mainPlayer") && !document.getElementById("adminPanel")) {
-    
     initAI(); 
-
     window.addEventListener("load", async () => {
         const url = await getStreamUrl();
         const ws = document.getElementById("waitingScreen");
@@ -181,11 +187,9 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
         if (!url || url.length < 5) return; 
 
         const isPro = url.includes("youtu") || url.includes(".m3u8") || url.includes(".mp4");
-
         if (isPro) {
             iframeEl.style.display = "none";
             vjsEl.style.display = "block";
-            
             let type = "video/mp4";
             if (url.includes("youtu")) type = "video/youtube";
             else if (url.includes(".m3u8")) type = "application/x-mpegURL";
@@ -197,16 +201,13 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
                 html5: { hls: { overrideNative: true }, nativeTextTracks: false },
                 youtube: { ytControls: 0, modestbranding: 1, rel: 0, showinfo: 0, iv_load_policy: 3 }
             });
-            
             player.ready(() => { ws.style.display = "none"; sc.style.display = "block"; player.muted(true); });
 
         } else {
             if (videojs.getPlayers()['mainPlayer']) videojs('mainPlayer').dispose();
             else vjsEl.style.display = "none";
-
             iframeEl.src = getEmbedUrl(url);
             iframeEl.style.display = "block";
-            
             ws.style.display = "none";
             sc.style.display = "block";
         }
@@ -220,7 +221,7 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
     }, 30000);
 }
 
-// ================= 6. FUNCIONES DEL PANEL DE ADMIN =================
+// ================= 6. ADMIN =================
 function checkPassword() {
     if (document.getElementById("passwordInput").value === ADMIN_PASSWORD) {
         document.getElementById("loginScreen").style.display = "none";
@@ -228,32 +229,19 @@ function checkPassword() {
         loadCurrentStream();
     } else document.getElementById("errorMsg").textContent = "❌ Contraseña incorrecta";
 }
-
 async function loadCurrentStream() {
     const url = await getStreamUrl();
     document.getElementById("videoUrlInput").value = url;
     document.getElementById("currentUrl").textContent = url || "Ninguna";
     if (url) document.getElementById("previewFrame").src = getEmbedUrl(url);
 }
-
 async function updateStream() {
     const url = document.getElementById("videoUrlInput").value.trim();
-    if (await saveStreamUrl(url)) { 
-        alert("✅ Guardado"); 
-        loadCurrentStream(); 
-    } else {
-        alert("❌ Error de conexión");
-    }
+    if (await saveStreamUrl(url)) { alert("✅ Guardado"); loadCurrentStream(); } else { alert("❌ Error de conexión"); }
 }
-
 async function clearStream() {
-    if(confirm("¿Detener transmisión?")) { 
-        await clearStreamUrl(); 
-        alert("🛑 Transmisión detenida");
-        location.reload(); 
-    }
+    if(confirm("¿Detener transmisión?")) { await clearStreamUrl(); alert("🛑 Transmisión detenida"); location.reload(); }
 }
-
 document.addEventListener("DOMContentLoaded", () => {
     const pw = document.getElementById("passwordInput");
     const urlIn = document.getElementById("videoUrlInput");
