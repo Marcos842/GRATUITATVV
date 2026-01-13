@@ -220,75 +220,6 @@ body {
 }
 
 /* ========================================
-   RESPONSIVE
-======================================== */
-@media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
-
-    .stream-container {
-        border-radius: 15px;
-    }
-
-    .stream-header {
-        padding: 15px 20px;
-    }
-
-    .live-badge {
-        font-size: 1rem;
-        padding: 10px 20px;
-    }
-
-    .stream-footer {
-        padding: 20px;
-    }
-
-    .donation-section h3 {
-        font-size: 1.2rem;
-    }
-
-    .donation-content {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .donation-text {
-        min-width: 100%;
-    }
-
-    .donation-qr img,
-    .qr-placeholder {
-        width: 150px;
-        height: 150px;
-    }
-
-    .waiting-content h1 {
-        font-size: 1.8rem;
-    }
-
-    .waiting-content p {
-        font-size: 1rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .live-badge {
-        font-size: 0.85rem;
-        padding: 8px 15px;
-        letter-spacing: 1px;
-    }
-
-    .donation-text p {
-        font-size: 1rem;
-    }
-
-    .donation-methods {
-        font-size: 1.1rem !important;
-    }
-}
-
-/* ========================================
    ESTILOS PANEL ADMIN (admin.html)
 ======================================== */
 .admin-body {
@@ -557,25 +488,25 @@ body {
 
 /* Caja de subtítulos mejorada */
 .ai-caption-box {
-    position: fixed; /* FIXED para que flote sobre todo, incluso scroll */
-    bottom: 15%;     /* Un poco más arriba del borde inferior */
+    position: fixed;
+    bottom: 15%;
     left: 50%;
     transform: translateX(-50%);
     width: 80%;
     max-width: 800px;
-    background-color: rgba(0, 0, 0, 0.85); /* Fondo casi negro sólido */
-    color: #ffff00; /* Amarillo puro para máximo contraste */
+    background-color: rgba(0, 0, 0, 0.85);
+    color: #ffff00;
     text-align: center;
-    font-size: 1.5rem; /* Letra más grande */
+    font-size: 1.5rem;
     font-family: Arial, sans-serif;
     font-weight: bold;
     padding: 20px;
     border-radius: 12px;
-    border: 2px solid #fff; /* Borde blanco para resaltar */
-    z-index: 99999 !important; /* Capa máxima absoluta */
+    border: 2px solid #fff;
+    z-index: 99999 !important;
     display: none; 
     text-shadow: 2px 2px 0px #000;
-    pointer-events: none; /* Dejar pasar clics */
+    pointer-events: none;
 }
 
 /* Indicador de estado */
@@ -587,7 +518,7 @@ body {
     letter-spacing: 2px;
 }
 
-/* El botón interruptor (igual que antes) */
+/* El botón interruptor */
 .ai-toggle-btn {
     background: #333;
     color: white;
@@ -612,4 +543,166 @@ body {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
+}
+
+/* --- NUEVOS ESTILOS: AYUDA Y MODAL POPUP --- */
+
+/* Botón de Ayuda */
+.help-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white; 
+    border: 1px solid rgba(255,255,255,0.5);
+    padding: 8px 15px; 
+    border-radius: 20px; 
+    cursor: pointer;
+    font-size: 0.9rem; 
+    font-weight: 600; 
+    transition: background 0.3s;
+}
+
+.help-btn:hover { 
+    background: rgba(255, 255, 255, 0.4); 
+}
+
+/* Ventana Modal (Fondo oscuro) */
+.modal-guide {
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background: rgba(0,0,0,0.8); 
+    z-index: 100000;
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+}
+
+/* Contenido de la Modal */
+.modal-content {
+    background: white; 
+    padding: 30px; 
+    border-radius: 15px;
+    max-width: 500px; 
+    width: 90%; 
+    text-align: left; 
+    position: relative;
+    color: #333; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.modal-content h2 { 
+    color: #667eea; 
+    margin-bottom: 15px; 
+}
+
+.modal-content ol { 
+    padding-left: 20px; 
+    line-height: 1.6; 
+    margin: 15px 0; 
+}
+
+.modal-content li { 
+    margin-bottom: 8px; 
+}
+
+/* Caja amarilla de Tips */
+.tip-box { 
+    background: #fff3cd; 
+    padding: 12px; 
+    border-radius: 5px; 
+    color: #856404; 
+    font-size: 0.9rem; 
+    border-left: 4px solid #ffeeba;
+}
+
+/* Botón X para cerrar */
+.close-btn { 
+    position: absolute; 
+    top: 10px; 
+    right: 15px; 
+    font-size: 28px; 
+    cursor: pointer; 
+    color: #aaa; 
+    transition: color 0.2s;
+}
+
+.close-btn:hover { 
+    color: #333; 
+}
+
+/* ========================================
+   RESPONSIVE (FINAL)
+======================================== */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .stream-container {
+        border-radius: 15px;
+    }
+
+    .stream-header {
+        padding: 15px 20px;
+    }
+
+    .live-badge {
+        font-size: 1rem;
+        padding: 10px 20px;
+    }
+
+    .stream-footer {
+        padding: 20px;
+    }
+
+    .donation-section h3 {
+        font-size: 1.2rem;
+    }
+
+    .donation-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .donation-text {
+        min-width: 100%;
+    }
+
+    .donation-qr img,
+    .qr-placeholder {
+        width: 150px;
+        height: 150px;
+    }
+
+    .waiting-content h1 {
+        font-size: 1.8rem;
+    }
+
+    .waiting-content p {
+        font-size: 1rem;
+    }
+    
+    /* Ajuste responsive para los subtítulos */
+    .ai-caption-box { 
+        font-size: 1.1rem; 
+        width: 90%; 
+        bottom: 10%; 
+    }
+}
+
+@media (max-width: 480px) {
+    .live-badge {
+        font-size: 0.85rem;
+        padding: 8px 15px;
+        letter-spacing: 1px;
+    }
+
+    .donation-text p {
+        font-size: 1rem;
+    }
+
+    .donation-methods {
+        font-size: 1.1rem !important;
+    }
 }
