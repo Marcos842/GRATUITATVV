@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración - Transmisiones</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body class="admin-body">
-    <!-- Pantalla de login -->
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
             <h1>🔐 Acceso Administrador</h1>
@@ -18,7 +18,6 @@
         </div>
     </div>
 
-    <!-- Panel de administración -->
     <div id="adminPanel" class="admin-panel" style="display: none;">
         <div class="admin-header">
             <h1>🎬 Panel de Control - Transmisiones</h1>
@@ -26,7 +25,6 @@
         </div>
 
         <div class="admin-container">
-            <!-- Vista previa del video -->
             <div class="preview-section">
                 <h2>📺 Vista Previa</h2>
                 <div class="video-preview">
@@ -39,7 +37,6 @@
                 </div>
             </div>
 
-            <!-- Controles -->
             <div class="controls-section">
                 <h2>⚙️ Configuración de Transmisión</h2>
 
@@ -56,6 +53,9 @@
                 <div class="button-group-admin">
                     <button class="btn-primary-admin" onclick="updateStream()">
                         ✅ Actualizar Transmisión
+                    </button>
+                    <button class="btn-primary-admin" style="background: #ff4757;" onclick="startScreenShare()">
+                        📡 Transmitir mi Pantalla
                     </button>
                     <button class="btn-secondary-admin" onclick="clearStream()">
                         🗑️ Limpiar
