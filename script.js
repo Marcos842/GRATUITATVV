@@ -1,17 +1,25 @@
-// SCRIPT.JS - VERSIÓN V55 (RELEVO INSTANTÁNEO + PERSISTENCIA VISUAL)
+// SCRIPT.JS - VERSIÓN V56 (SOPORTE TOTAL: URL + PANTALLA COMPARTIDA)
 const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
-// ================= VARIABLES GLOBALES IA =================
+// ================= VARIABLES GLOBALES =================
 let recognition;
 let isAiActive = false;
 let subtitleClearTimer; 
 let lastAiUpdate = 0; 
 
+// Variables para compartir pantalla (NUEVO)
+let myPeer = null;
+let screenStream = null;
+
 // ================= 1. FUNCIONES UTILITARIAS =================
 function sanitizeUrl(url) {
     if (!url) return "";
     url = url.trim();
+    
+    // NUEVO: Permitimos los IDs de transmisión de pantalla
+    if (url.startsWith("live_screen:")) return url;
+
     const secondHttp = url.indexOf("http", 4); 
     if (secondHttp > -1) url = url.substring(0, secondHttp).trim();
     return url;
@@ -22,14 +30,11 @@ function isMobile() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-// === GUARDIÁN DE VIDEO (ANTI-PAUSA INSTANTÁNEO) ===
+// === GUARDIÁN DE VIDEO ===
 function forceVideoResume() {
     if (!isMobile() || !isAiActive) return;
     const player = videojs.getPlayers()['mainPlayer'];
-    
-    // Si el sistema pausó el video, le damos play SIN ESPERAS
     if (player && player.paused()) {
-        console.log("⚡ Mobile: Play Forzado Instantáneo");
         player.play().catch(e => {});
     }
 }
@@ -58,6 +63,9 @@ function toggleGuide() {
 // ================= 3. CONVERTIDOR DE ENLACES =================
 function getEmbedUrl(url) {
     url = sanitizeUrl(url);
+    // Si es pantalla compartida, no retornamos URL de embed
+    if (url.startsWith("live_screen:")) return "";
+
     const tiktok = url.match(/tiktok\.com\/@.*\/video\/(\d+)/);
     if (tiktok) return `https://www.tiktok.com/embed/v2/${tiktok[1]}`;
     
@@ -75,35 +83,22 @@ function getEmbedUrl(url) {
     return url; 
 }
 
-// ================= 4. LÓGICA IA (PERSISTENCIA VISUAL) =================
+// ================= 4. LÓGICA IA (SUBTÍTULOS) =================
 function updateSubtitleDisplay(text, isFinal) {
     const box = document.getElementById('aiCaptions');
     if (!text || text.length === 0) return;
 
-    lastAiUpdate = Date.now(); // Confirmamos que la IA está viva
-
-    // Anti-Muro (Máximo 14 palabras)
+    lastAiUpdate = Date.now(); 
     let words = text.trim().split(/\s+/);
     const MAX_WORDS = 14; 
-    if (words.length > MAX_WORDS) {
-        text = words.slice(-MAX_WORDS).join(" ");
-    }
+    if (words.length > MAX_WORDS) text = words.slice(-MAX_WORDS).join(" ");
 
-    // Limpiamos el timer anterior para que NO borre el texto si sigues hablando
     clearTimeout(subtitleClearTimer);
-    
     box.innerHTML = text;
     box.style.display = 'block';
 
-    // ESTRATEGIA: PERSISTENCIA VISUAL
-    // Si la frase terminó, la dejamos en pantalla el tiempo que tú definas abajo.
-    // Esto tapa el "hueco" mientras la IA se reinicia en el celular.
     if (isFinal) {
-        
-        // 👇👇 AQUÍ ES DONDE CAMBIAS LOS SEGUNDOS 👇👇
-        // 6000 = 6 segundos. (Puedes poner 7000, 8000, etc.)
         const TIEMPO_EN_PANTALLA = 8000; 
-
         subtitleClearTimer = setTimeout(() => {
             box.style.display = 'none';
             box.innerHTML = '';
@@ -120,69 +115,39 @@ function initAI() {
         recognition.lang = 'es-ES'; 
 
         recognition.onstart = () => {
-            console.log("🎤 IA: Conectada");
             lastAiUpdate = Date.now();
-            forceVideoResume(); // Play al video inmediatamente
+            forceVideoResume();
         };
 
         recognition.onresult = (event) => {
             lastAiUpdate = Date.now();
-
-            // Anti-Fantasma (Limpiar memoria si se llena de basura)
-            if (event.results.length > 2) {
-                recognition.abort(); 
-                return; 
-            }
-
+            if (event.results.length > 2) { recognition.abort(); return; }
             const lastIndex = event.results.length - 1;
             const transcript = event.results[lastIndex][0].transcript;
             const isFinal = event.results[lastIndex].isFinal;
-            
-            if (transcript.trim().length > 0) {
-                updateSubtitleDisplay(transcript, isFinal);
-            }
+            if (transcript.trim().length > 0) updateSubtitleDisplay(transcript, isFinal);
         };
 
-        // === CERO TIEMPOS MUERTOS ===
         recognition.onend = () => { 
             if (isAiActive) {
-                console.log("🔄 IA: Reinicio Instantáneo...");
-                // No usamos setTimeout. Reiniciamos YA.
-                try {
-                    recognition.start();
-                } catch(e) {
-                    // Si falla por "ya iniciado", ignoramos.
-                }
+                try { recognition.start(); } catch(e) {}
                 forceVideoResume();
             }
         };
 
         recognition.onerror = (event) => {
-            // Si hay error, no esperamos. Abortamos y dejamos que onend reinicie.
-            console.warn("⚠️ IA Error:", event.error);
             if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                toggleAI(true); 
-                alert("❌ Revisa micrófono.");
-            } else {
-                // Para cualquier otro error, corte duro y reinicio rápido
-                recognition.abort();
-            }
+                toggleAI(true); alert("❌ Revisa micrófono.");
+            } else { recognition.abort(); }
             forceVideoResume();
         };
 
-        // Watchdog de emergencia (Por si el reinicio instantáneo falla)
         setInterval(() => {
             if (isAiActive && isMobile()) {
                 const tiempoSinSenal = Date.now() - lastAiUpdate;
-                // Si lleva 5 seg (antes 8) sin señales, reinicio forzoso
-                if (tiempoSinSenal > 5000) { 
-                    console.log("💀 IA ZOMBIE - REINICIO FORZADO");
-                    recognition.abort(); 
-                    lastAiUpdate = Date.now();
-                }
+                if (tiempoSinSenal > 5000) { recognition.abort(); lastAiUpdate = Date.now(); }
             }
-        }, 1000); // Revisar cada segundo
-
+        }, 1000);
     } else {
         const btn = document.getElementById('btnAI');
         if(btn) btn.style.display = 'none';
@@ -192,8 +157,6 @@ function initAI() {
 function toggleAI(forceOff = false) {
     const btn = document.getElementById('btnAI');
     const box = document.getElementById('aiCaptions');
-    const player = videojs.getPlayers()['mainPlayer'];
-
     if (forceOff || isAiActive) {
         if (recognition) recognition.stop();
         isAiActive = false;
@@ -207,24 +170,9 @@ function toggleAI(forceOff = false) {
             isAiActive = true;
             btn.innerHTML = "<span>🔴</span> Subtítulos IA (ON)";
             btn.classList.add("ai-active");
-            
-            // Mensaje inicial para que el usuario sepa que está cargando
             updateSubtitleDisplay("Escuchando...", true);
-            
             lastAiUpdate = Date.now();
-            forceVideoResume();
-
-            // Parche extra: Detector de pausa nativo
-            if (player) {
-                player.on('pause', () => {
-                    if (isMobile() && isAiActive) forceVideoResume();
-                });
-            }
-
-            if (!sessionStorage.getItem('guideShown')) {
-                toggleGuide();
-                sessionStorage.setItem('guideShown', 'true');
-            }
+            if (!sessionStorage.getItem('guideShown')) { toggleGuide(); sessionStorage.setItem('guideShown', 'true'); }
         } catch (e) { console.error(e); }
     }
 }
@@ -245,17 +193,57 @@ async function clearStreamUrl() {
     try { await fetch(APPS_SCRIPT_URL, {method: "POST", mode: "no-cors", headers: {"Content-Type":"application/json"}, body: JSON.stringify({action:"clear"})}); return true; } catch { return false; }
 }
 
+// ================= 6. LÓGICA DE VISOR (INDEX.HTML) =================
 if (document.getElementById("mainPlayer") && !document.getElementById("adminPanel")) {
     initAI(); 
+    
     window.addEventListener("load", async () => {
         const url = await getStreamUrl();
         const ws = document.getElementById("waitingScreen");
         const sc = document.getElementById("streamContainer");
         const vjsEl = document.getElementById("mainPlayer");
         const iframeEl = document.getElementById("genericFrame");
+        // NUEVO: Elemento para recibir pantalla
+        const screenEl = document.getElementById("screenSharePlayer");
 
         if (!url || url.length < 5) return; 
 
+        // === CASO A: MODO PANTALLA COMPARTIDA ===
+        if (url.startsWith("live_screen:")) {
+            ws.style.display = "none";
+            sc.style.display = "block";
+            
+            // Ocultamos los reproductores normales
+            if(videojs.getPlayers()['mainPlayer']) videojs('mainPlayer').hide();
+            vjsEl.style.display = "none";
+            iframeEl.style.display = "none";
+            
+            // Mostramos el reproductor de pantalla
+            screenEl.style.display = "block";
+            
+            const peerId = url.split(":")[1];
+            
+            // Inicializamos PeerJS para recibir
+            const peer = new Peer();
+            peer.on('open', (id) => {
+                // Llamamos al admin
+                const call = peer.call(peerId, navigator.mediaDevices.getUserMedia({audio: true, video: false}).catch(e=>null)); // Dummy stream
+                
+                call.on('stream', (remoteStream) => {
+                    screenEl.srcObject = remoteStream;
+                    screenEl.play().catch(e => console.log("Autoplay bloqueado, requiere click"));
+                });
+                
+                // Si la llamada se corta, recargamos
+                call.on('close', () => location.reload());
+                call.on('error', () => location.reload());
+            });
+            return; // Terminamos aquí si es modo pantalla
+        }
+
+        // === CASO B: MODO URL NORMAL ===
+        screenEl.style.display = "none"; // Asegurar oculto
+        
         const isPro = url.includes("youtu") || url.includes(".m3u8") || url.includes(".mp4");
         if (isPro) {
             iframeEl.style.display = "none";
@@ -282,6 +270,7 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
         }
     });
 
+    // Auto-recarga para detectar cambios
     setInterval(async () => {
         const inc = await getStreamUrl();
         const sav = sessionStorage.getItem('lastStreamUrl');
@@ -290,7 +279,7 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
     }, 30000);
 }
 
-// ================= 6. ADMIN =================
+// ================= 7. ADMIN Y LÓGICA DE TRANSMISIÓN =================
 function checkPassword() {
     if (document.getElementById("passwordInput").value === ADMIN_PASSWORD) {
         document.getElementById("loginScreen").style.display = "none";
@@ -298,19 +287,64 @@ function checkPassword() {
         loadCurrentStream();
     } else document.getElementById("errorMsg").textContent = "❌ Contraseña incorrecta";
 }
+
+// NUEVO: Función para iniciar compartir pantalla
+async function startScreenShare() {
+    try {
+        // Pedir pantalla y audio
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { cursor: "always" },
+            audio: true // IMPORTANTE: Marcar "Compartir audio" en el popup
+        });
+
+        myPeer = new Peer();
+
+        myPeer.on('open', (id) => {
+            console.log('ID Transmisión:', id);
+            // Guardamos con prefijo especial
+            saveStreamUrl("live_screen:" + id);
+            alert("📡 Transmitiendo Pantalla. NO CIERRES esta pestaña.");
+            
+            // Limpiamos preview anterior
+            document.getElementById('previewFrame').src = ""; 
+        });
+
+        // Cuando un usuario entra, le enviamos el video
+        myPeer.on('call', (call) => {
+            call.answer(screenStream);
+        });
+
+        // Si el admin deja de compartir desde el navegador
+        screenStream.getVideoTracks()[0].onended = () => {
+            clearStream();
+            if(myPeer) myPeer.destroy();
+            alert("Transmisión finalizada.");
+        };
+
+    } catch (err) {
+        alert("❌ Error: " + err.message);
+    }
+}
+
 async function loadCurrentStream() {
     const url = await getStreamUrl();
     document.getElementById("videoUrlInput").value = url;
     document.getElementById("currentUrl").textContent = url || "Ninguna";
-    if (url) document.getElementById("previewFrame").src = getEmbedUrl(url);
+    // Solo cargamos preview si es una URL normal (no pantalla compartida)
+    if (url && !url.startsWith("live_screen:")) {
+        document.getElementById("previewFrame").src = getEmbedUrl(url);
+    }
 }
+
 async function updateStream() {
     const url = document.getElementById("videoUrlInput").value.trim();
     if (await saveStreamUrl(url)) { alert("✅ Guardado"); loadCurrentStream(); } else { alert("❌ Error de conexión"); }
 }
+
 async function clearStream() {
-    if(confirm("¿Detener transmisión?")) { await clearStreamUrl(); alert("🛑 Transmisión detenida"); location.reload(); }
+    if(confirm("¿Detener transmisión?")) { await clearStreamUrl(); alert("🛑 Detenida"); location.reload(); }
 }
+
 document.addEventListener("DOMContentLoaded", () => {
     const pw = document.getElementById("passwordInput");
     const urlIn = document.getElementById("videoUrlInput");
