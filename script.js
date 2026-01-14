@@ -1,4 +1,4 @@
-// SCRIPT.JS - VERSIÓN V57 (CORRECCIÓN ERROR PANTALLA NEGRA)
+// SCRIPT.JS - VERSIÓN V58 (CORRECCIÓN "VIDEO FANTASMA" PARA DESBLOQUEAR PANTALLA NEGRA)
 const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
@@ -32,6 +32,25 @@ function forceVideoResume() {
     if (player && player.paused()) {
         player.play().catch(e => {});
     }
+}
+
+// === NUEVO: GENERADOR DE SEÑAL FALSA (PARA QUE PEERJS NO FALLE) ===
+function createSilentStream() {
+    // 1. Crear un audio silencioso
+    const ctx = new AudioContext();
+    const oscillator = ctx.createOscillator();
+    const dst = oscillator.connect(ctx.createMediaStreamDestination());
+    oscillator.start();
+    
+    // 2. Crear un video negro (Canvas)
+    const canvas = document.createElement("canvas");
+    canvas.width = 1; canvas.height = 1; // 1 pixel
+    const canvasStream = canvas.captureStream(10); // 10 FPS
+    
+    // 3. Mezclar ambos en un Stream válido
+    const trackAudio = dst.stream.getAudioTracks()[0];
+    const trackVideo = canvasStream.getVideoTracks()[0];
+    return new MediaStream([trackAudio, trackVideo]);
 }
 
 // ================= 2. GUÍA INTELIGENTE =================
@@ -198,7 +217,6 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
             if(videojs.getPlayers()['mainPlayer']) videojs('mainPlayer').hide();
             vjsEl.style.display = "none";
             iframeEl.style.display = "none";
-            
             screenEl.style.display = "block";
             
             const peerId = url.split(":")[1];
@@ -207,26 +225,32 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
             const peer = new Peer();
             
             peer.on('open', (id) => {
-                // <--- AQUÍ ESTABA EL ERROR "getTracks"
-                // Solución: Enviamos un Stream Vacío (Dummy) para iniciar la llamada
-                const dummyStream = new MediaStream(); 
+                console.log("Conectando con ID:", peerId);
+                
+                // === SOLUCIÓN CRÍTICA: VIDEO FANTASMA ===
+                // Enviamos video negro y silencio para que el navegador acepte la llamada
+                const dummyStream = createSilentStream(); 
                 
                 const call = peer.call(peerId, dummyStream);
                 
                 call.on('stream', (remoteStream) => {
-                    // Recibimos la pantalla del Admin
-                    console.log("Recibiendo señal de video...");
+                    console.log("¡Señal de video recibida!");
                     screenEl.srcObject = remoteStream;
-                    screenEl.play().catch(e => {
-                        console.log("Autoplay bloqueado. Requiere interacción.");
-                        // Opcional: Mostrar botón "Click para ver"
-                    });
+                    
+                    // Forzar reproducción
+                    const playPromise = screenEl.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.log("Autoplay bloqueado. El usuario debe hacer click.");
+                            // Si se bloquea, mostramos el botón de Play del control nativo
+                        });
+                    }
                 });
                 
                 call.on('close', () => location.reload());
                 call.on('error', (err) => {
-                    console.error("Error en llamada:", err);
-                    location.reload();
+                    console.error("Error Peer:", err);
+                    setTimeout(() => location.reload(), 3000);
                 });
             });
             return;
@@ -280,9 +304,10 @@ function checkPassword() {
 
 async function startScreenShare() {
     try {
+        // Pedir pantalla y audio
         screenStream = await navigator.mediaDevices.getDisplayMedia({
             video: { cursor: "always" },
-            audio: true 
+            audio: true // IMPORTANTE
         });
 
         myPeer = new Peer();
@@ -294,10 +319,10 @@ async function startScreenShare() {
             document.getElementById('previewFrame').src = ""; 
         });
 
-        // Cuando el Visor llama (con su stream vacío), le contestamos
+        // Cuando el Visor llama (con su video fantasma), le contestamos
         myPeer.on('call', (call) => {
-            console.log("Conectando usuario...");
-            call.answer(screenStream); // <--- Enviamos la pantalla aquí
+            console.log("Usuario conectado. Enviando pantalla...");
+            call.answer(screenStream); // Le mandamos la pantalla real
         });
 
         screenStream.getVideoTracks()[0].onended = () => {
