@@ -1,4 +1,4 @@
-/* STYLES.CSS - VERSIÓN V25 (FINAL COMPATIBLE CON TODO EL SISTEMA) */
+/* STYLES.CSS - VERSIÓN V56 (SOPORTE PANTALLA COMPARTIDA + GUÍA LIMPIA) */
 
 * {
     margin: 0;
@@ -66,7 +66,7 @@ body {
    2. CONTENEDOR PRINCIPAL
 ======================================== */
 .stream-container {
-    max-width: 1400px;
+    max-width: 1100px; /* Ancho ideal */
     margin: 0 auto;
     background: white;
     border-radius: 20px;
@@ -77,8 +77,20 @@ body {
 /* HEADER */
 .stream-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 20px 30px;
+    padding: 15px 20px;
     text-align: center;
+    /* Ajuste Flex para alinear badge y botones */
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    flex-wrap: wrap; 
+    gap: 10px;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 15px;
+    align-items: center;
 }
 
 .live-badge {
@@ -87,10 +99,10 @@ body {
     gap: 10px;
     background: rgba(255, 255, 255, 0.2);
     color: white;
-    padding: 12px 30px;
+    padding: 8px 20px;
     border-radius: 50px;
     font-weight: 700;
-    font-size: 1.2rem;
+    font-size: 1rem;
     letter-spacing: 2px;
     backdrop-filter: blur(10px);
     border: 2px solid rgba(255, 255, 255, 0.3);
@@ -110,7 +122,7 @@ body {
     50% { opacity: 0.3; transform: scale(0.8); }
 }
 
-/* VIDEO WRAPPER */
+/* VIDEO WRAPPER (Soporte para Iframe y Nuevo Video) */
 .video-wrapper {
     position: relative;
     padding-bottom: 56.25%; /* Ratio 16:9 */
@@ -118,7 +130,9 @@ body {
     background: #000;
 }
 
-.video-wrapper iframe {
+/* Aplicamos estilos a ambos elementos para que ocupen todo el espacio */
+.video-wrapper iframe, 
+.video-wrapper video#screenSharePlayer {
     position: absolute;
     top: 0;
     left: 0;
@@ -196,180 +210,138 @@ body {
 .qr-placeholder small { text-align: center; font-size: 0.9rem; line-height: 1.4; }
 
 /* ========================================
-   3. ESTILOS DE LA IA Y SUBTÍTULOS
+   3. ESTILOS DE LA IA (SUBTÍTULOS)
 ======================================== */
-
-/* Caja de subtítulos profesional */
 .ai-caption-box {
     position: fixed;
-    bottom: 10%;           /* Separación ergonómica del borde inferior */
+    bottom: 10%;
     left: 50%;
     transform: translateX(-50%);
-    
-    width: auto;           /* Se ajusta al tamaño del texto */
-    max-width: 85%;        /* Límite para que no toque los bordes de la pantalla */
-    
-    /* Tipografía moderna y limpia */
-    color: #ffffff;
+    width: auto;
+    max-width: 90%; 
+    color: #ffff00; 
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    font-size: 1.6rem;     /* Tamaño grande y legible */
-    font-weight: 600;      /* Seminegrita */
+    font-size: 1.7rem;     
+    font-weight: 700;      
     line-height: 1.3;
     text-align: center;
-    
-    /* Sombra fuerte (Outline) para leerse sobre cualquier fondo */
     text-shadow: 
-        2px 2px 0 #000, 
-        -1px -1px 0 #000,  
-        1px -1px 0 #000,
-        -1px 1px 0 #000,
-        1px 1px 0 #000;
-    
-    /* Fondo redondeado y sutil (Mejora estética drástica) */
-    background-color: rgba(0, 0, 0, 0.5); 
-    padding: 12px 24px;
-    border-radius: 30px;
-    
+        2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000,
+        -1px 1px 0 #000, 1px 1px 0 #000, 0px 0px 5px rgba(0,0,0,0.8);
+    background-color: rgba(0, 0, 0, 0.6); 
+    padding: 15px 30px;
+    border-radius: 15px; 
     z-index: 99999 !important;
-    display: none;         /* Controlado por JS */
-    pointer-events: none;  /* El usuario puede hacer clic a través del texto */
-    
-    /* Animación de entrada */
-    animation: fadeSlideUp 0.3s ease-out forwards;
+    display: none;
+    pointer-events: none;
+    animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-/* Animación: El texto sube suavemente al aparecer */
-@keyframes fadeSlideUp {
-    0% { opacity: 0; transform: translate(-50%, 20px); }
-    100% { opacity: 1; transform: translate(-50%, 0); }
+@keyframes popIn {
+    0% { opacity: 0; transform: translate(-50%, 20px) scale(0.9); }
+    100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 
-/* Indicador "Escuchando..." (Discreto) */
-.ai-indicator {
-    display: block;
-    font-size: 0.8rem;
-    color: #4ade80; /* Verde neón suave */
-    margin-bottom: 4px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-weight: 700;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-}
+.ai-indicator { display: none; } 
 
-/* Botón ON/OFF (Estilo Cápsula) */
-.ai-toggle-btn {
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 8px 20px;
-    border-radius: 50px;
-    cursor: pointer;
-    font-weight: 600;
+/* ========================================
+   4. BOTONES DEL HEADER
+======================================== */
+.help-btn, .ai-toggle-btn {
+    background: rgba(255, 255, 255, 0.15); 
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #ffffff;
+    height: 42px;              
+    padding: 0 20px;
+    border-radius: 50px;       
     font-size: 0.9rem;
-    display: flex;
+    font-weight: 600;
+    font-family: 'Segoe UI', sans-serif;
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    gap: 8px;                  
+    cursor: pointer;
     transition: all 0.3s ease;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(5px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.ai-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
+.help-btn:hover, .ai-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.3); 
+    transform: translateY(-2px);           
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    border-color: #ffffff;
 }
 
-/* Estado Activo (Grabando - Rojo Pulsante) */
 .ai-active {
-    background: rgba(220, 38, 38, 0.9) !important; /* Rojo intenso */
-    border-color: #fca5a5;
-    box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
-    animation: pulse-recording 2s infinite;
+    background: #ff4757 !important;
+    border-color: #ff6b81;
+    box-shadow: 0 0 20px rgba(255, 71, 87, 0.6);
+    animation: pulse-red 2s infinite;
 }
 
-@keyframes pulse-recording {
-    0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
 }
 
 /* ========================================
-   4. GUÍA DE AYUDA Y MODAL (NUEVO)
+   5. GUÍA DE AYUDA Y MODAL
 ======================================== */
-
-/* Botón de Ayuda */
-.help-btn {
-    background: rgba(255, 255, 255, 0.2);
-    color: white; 
-    border: 1px solid rgba(255,255,255,0.5);
-    padding: 8px 15px; 
-    border-radius: 20px; 
-    cursor: pointer;
-    font-size: 0.9rem; 
-    font-weight: 600; 
-    transition: background 0.3s;
-}
-
-.help-btn:hover { 
-    background: rgba(255, 255, 255, 0.4); 
-}
-
-/* Fondo oscuro del Modal */
 .modal-guide {
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%;
-    background: rgba(0,0,0,0.8); 
-    z-index: 100000; /* Capa máxima (Encima de todo) */
-    display: flex; 
-    justify-content: center; 
-    align-items: center;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); z-index: 100000;
+    display: flex; justify-content: center; align-items: center;
 }
 
-/* Caja blanca del Modal */
 .modal-content {
-    background: white; 
-    padding: 30px; 
-    border-radius: 15px;
-    max-width: 500px; 
-    width: 90%; 
-    text-align: left; 
-    position: relative;
-    color: #333; 
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    background: white; padding: 30px; border-radius: 15px;
+    max-width: 600px; width: 90%; text-align: left; position: relative;
+    color: #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-.modal-content h2 { 
-    color: #667eea; 
-    margin-bottom: 15px; 
-}
-
-.modal-content ol, .modal-content ul { 
-    padding-left: 20px; 
-    line-height: 1.6; 
-    margin: 15px 0; 
-}
-
-.modal-content li { 
-    margin-bottom: 8px; 
-}
-
-/* Botón X para cerrar */
+.modal-content h2 { color: #667eea; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
 .close-btn { 
-    position: absolute; 
-    top: 10px; 
-    right: 15px; 
-    font-size: 28px; 
-    cursor: pointer; 
-    color: #aaa; 
-    transition: color 0.2s;
+    position: absolute; top: 10px; right: 15px; font-size: 28px; 
+    cursor: pointer; color: #aaa; transition: color 0.2s;
 }
-
 .close-btn:hover { color: #333; }
 
+/* --- ESTILOS INTERNOS DE LA GUÍA (NUEVO: REEMPLAZA ESTILOS INLINE) --- */
+.guide-body { margin-top: 15px; }
+.guide-body ul, .guide-body ol { padding-left: 20px; line-height: 1.6; margin: 10px 0; color: #555; }
+.guide-body h4 { color: #333; margin-top: 15px; margin-bottom: 5px; font-weight: 700; }
+
+.guide-step { 
+    padding: 15px; border-radius: 8px; margin-bottom: 15px; 
+    border-left: 5px solid transparent; 
+}
+
+/* Paso Azul (Volumen) */
+.step-blue { background: #e3f2fd; border-left-color: #2196f3; }
+.step-blue h4 { color: #0d47a1; margin-bottom: 5px; margin-top: 0; }
+.step-blue p { color: #555; margin: 0; }
+
+/* Paso Rojo (No Audífonos) */
+.step-red { background: #ffebee; border-left-color: #f44336; }
+.step-red h4 { color: #b71c1c; margin-bottom: 5px; margin-top: 0; }
+.step-red p { color: #555; margin: 0; }
+
+/* Texto Resaltado (Paso Rosa) */
+.highlight-step {
+    color: #d63384; 
+    background: #fff0f5; 
+    padding: 8px; 
+    border-radius: 4px; 
+    margin-top: 5px; 
+    font-weight: bold;
+    display: block;
+}
+
 /* ========================================
-   5. ESTILOS PANEL ADMIN
+   6. ESTILOS PANEL ADMIN
 ======================================== */
 .admin-body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
 .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
@@ -437,12 +409,12 @@ body {
 }
 
 /* ========================================
-   6. RESPONSIVE GLOBAL
+   7. RESPONSIVE GLOBAL
 ======================================== */
 @media (max-width: 768px) {
     body { padding: 10px; }
     .stream-container { border-radius: 15px; }
-    .stream-header { padding: 15px 20px; }
+    .stream-header { padding: 15px 20px; } /* Flex wrap se encarga del resto */
     .live-badge { font-size: 1rem; padding: 10px 20px; }
     .stream-footer { padding: 20px; }
     .donation-section h3 { font-size: 1.2rem; }
@@ -451,13 +423,16 @@ body {
     .donation-qr img, .qr-placeholder { width: 150px; height: 150px; }
     .waiting-content h1 { font-size: 1.8rem; }
     .waiting-content p { font-size: 1rem; }
-    
-    /* Ajuste clave para móviles: subtítulos más pequeños y ajustados */
-    .ai-caption-box { font-size: 1.1rem; width: 90%; bottom: 10%; }
+    .ai-caption-box { font-size: 1.1rem; width: 90%; bottom: 10%; padding: 10px 15px; }
 }
 
 @media (max-width: 480px) {
     .live-badge { font-size: 0.85rem; padding: 8px 15px; letter-spacing: 1px; }
     .donation-text p { font-size: 1rem; }
     .donation-methods { font-size: 1.1rem !important; }
+    
+    /* Ajuste Header Móvil */
+    .stream-header { flex-direction: column; }
+    .header-buttons { width: 100%; justify-content: center; }
+    .help-btn, .ai-toggle-btn { flex: 1; font-size: 0.8rem; padding: 0 10px; }
 }
