@@ -1,4 +1,4 @@
-// SCRIPT.JS - VERSIÓN V56 (SOPORTE TOTAL: URL + PANTALLA COMPARTIDA)
+// SCRIPT.JS - VERSIÓN V57 (CORRECCIÓN ERROR PANTALLA NEGRA)
 const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
@@ -8,7 +8,7 @@ let isAiActive = false;
 let subtitleClearTimer; 
 let lastAiUpdate = 0; 
 
-// Variables para compartir pantalla (NUEVO)
+// Variables para compartir pantalla
 let myPeer = null;
 let screenStream = null;
 
@@ -16,21 +16,16 @@ let screenStream = null;
 function sanitizeUrl(url) {
     if (!url) return "";
     url = url.trim();
-    
-    // NUEVO: Permitimos los IDs de transmisión de pantalla
     if (url.startsWith("live_screen:")) return url;
-
     const secondHttp = url.indexOf("http", 4); 
     if (secondHttp > -1) url = url.substring(0, secondHttp).trim();
     return url;
 }
 
-// DETECTOR DE DISPOSITIVO
 function isMobile() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-// === GUARDIÁN DE VIDEO ===
 function forceVideoResume() {
     if (!isMobile() || !isAiActive) return;
     const player = videojs.getPlayers()['mainPlayer'];
@@ -63,7 +58,6 @@ function toggleGuide() {
 // ================= 3. CONVERTIDOR DE ENLACES =================
 function getEmbedUrl(url) {
     url = sanitizeUrl(url);
-    // Si es pantalla compartida, no retornamos URL de embed
     if (url.startsWith("live_screen:")) return "";
 
     const tiktok = url.match(/tiktok\.com\/@.*\/video\/(\d+)/);
@@ -87,7 +81,6 @@ function getEmbedUrl(url) {
 function updateSubtitleDisplay(text, isFinal) {
     const box = document.getElementById('aiCaptions');
     if (!text || text.length === 0) return;
-
     lastAiUpdate = Date.now(); 
     let words = text.trim().split(/\s+/);
     const MAX_WORDS = 14; 
@@ -114,11 +107,7 @@ function initAI() {
         recognition.interimResults = true; 
         recognition.lang = 'es-ES'; 
 
-        recognition.onstart = () => {
-            lastAiUpdate = Date.now();
-            forceVideoResume();
-        };
-
+        recognition.onstart = () => { lastAiUpdate = Date.now(); forceVideoResume(); };
         recognition.onresult = (event) => {
             lastAiUpdate = Date.now();
             if (event.results.length > 2) { recognition.abort(); return; }
@@ -127,21 +116,15 @@ function initAI() {
             const isFinal = event.results[lastIndex].isFinal;
             if (transcript.trim().length > 0) updateSubtitleDisplay(transcript, isFinal);
         };
-
         recognition.onend = () => { 
-            if (isAiActive) {
-                try { recognition.start(); } catch(e) {}
-                forceVideoResume();
-            }
+            if (isAiActive) { try { recognition.start(); } catch(e) {} forceVideoResume(); }
         };
-
         recognition.onerror = (event) => {
             if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                 toggleAI(true); alert("❌ Revisa micrófono.");
             } else { recognition.abort(); }
             forceVideoResume();
         };
-
         setInterval(() => {
             if (isAiActive && isMobile()) {
                 const tiempoSinSenal = Date.now() - lastAiUpdate;
@@ -203,46 +186,54 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
         const sc = document.getElementById("streamContainer");
         const vjsEl = document.getElementById("mainPlayer");
         const iframeEl = document.getElementById("genericFrame");
-        // NUEVO: Elemento para recibir pantalla
         const screenEl = document.getElementById("screenSharePlayer");
 
         if (!url || url.length < 5) return; 
 
-        // === CASO A: MODO PANTALLA COMPARTIDA ===
+        // === MODO PANTALLA COMPARTIDA ===
         if (url.startsWith("live_screen:")) {
             ws.style.display = "none";
             sc.style.display = "block";
             
-            // Ocultamos los reproductores normales
             if(videojs.getPlayers()['mainPlayer']) videojs('mainPlayer').hide();
             vjsEl.style.display = "none";
             iframeEl.style.display = "none";
             
-            // Mostramos el reproductor de pantalla
             screenEl.style.display = "block";
             
             const peerId = url.split(":")[1];
             
-            // Inicializamos PeerJS para recibir
+            // Inicializar PeerJS (Visor)
             const peer = new Peer();
+            
             peer.on('open', (id) => {
-                // Llamamos al admin
-                const call = peer.call(peerId, navigator.mediaDevices.getUserMedia({audio: true, video: false}).catch(e=>null)); // Dummy stream
+                // <--- AQUÍ ESTABA EL ERROR "getTracks"
+                // Solución: Enviamos un Stream Vacío (Dummy) para iniciar la llamada
+                const dummyStream = new MediaStream(); 
+                
+                const call = peer.call(peerId, dummyStream);
                 
                 call.on('stream', (remoteStream) => {
+                    // Recibimos la pantalla del Admin
+                    console.log("Recibiendo señal de video...");
                     screenEl.srcObject = remoteStream;
-                    screenEl.play().catch(e => console.log("Autoplay bloqueado, requiere click"));
+                    screenEl.play().catch(e => {
+                        console.log("Autoplay bloqueado. Requiere interacción.");
+                        // Opcional: Mostrar botón "Click para ver"
+                    });
                 });
                 
-                // Si la llamada se corta, recargamos
                 call.on('close', () => location.reload());
-                call.on('error', () => location.reload());
+                call.on('error', (err) => {
+                    console.error("Error en llamada:", err);
+                    location.reload();
+                });
             });
-            return; // Terminamos aquí si es modo pantalla
+            return;
         }
 
-        // === CASO B: MODO URL NORMAL ===
-        screenEl.style.display = "none"; // Asegurar oculto
+        // === MODO URL NORMAL ===
+        screenEl.style.display = "none";
         
         const isPro = url.includes("youtu") || url.includes(".m3u8") || url.includes(".mp4");
         if (isPro) {
@@ -270,7 +261,6 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
         }
     });
 
-    // Auto-recarga para detectar cambios
     setInterval(async () => {
         const inc = await getStreamUrl();
         const sav = sessionStorage.getItem('lastStreamUrl');
@@ -279,7 +269,7 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
     }, 30000);
 }
 
-// ================= 7. ADMIN Y LÓGICA DE TRANSMISIÓN =================
+// ================= 7. ADMIN Y TRANSMISIÓN =================
 function checkPassword() {
     if (document.getElementById("passwordInput").value === ADMIN_PASSWORD) {
         document.getElementById("loginScreen").style.display = "none";
@@ -288,33 +278,28 @@ function checkPassword() {
     } else document.getElementById("errorMsg").textContent = "❌ Contraseña incorrecta";
 }
 
-// NUEVO: Función para iniciar compartir pantalla
 async function startScreenShare() {
     try {
-        // Pedir pantalla y audio
         screenStream = await navigator.mediaDevices.getDisplayMedia({
             video: { cursor: "always" },
-            audio: true // IMPORTANTE: Marcar "Compartir audio" en el popup
+            audio: true 
         });
 
         myPeer = new Peer();
 
         myPeer.on('open', (id) => {
             console.log('ID Transmisión:', id);
-            // Guardamos con prefijo especial
             saveStreamUrl("live_screen:" + id);
             alert("📡 Transmitiendo Pantalla. NO CIERRES esta pestaña.");
-            
-            // Limpiamos preview anterior
             document.getElementById('previewFrame').src = ""; 
         });
 
-        // Cuando un usuario entra, le enviamos el video
+        // Cuando el Visor llama (con su stream vacío), le contestamos
         myPeer.on('call', (call) => {
-            call.answer(screenStream);
+            console.log("Conectando usuario...");
+            call.answer(screenStream); // <--- Enviamos la pantalla aquí
         });
 
-        // Si el admin deja de compartir desde el navegador
         screenStream.getVideoTracks()[0].onended = () => {
             clearStream();
             if(myPeer) myPeer.destroy();
@@ -330,7 +315,6 @@ async function loadCurrentStream() {
     const url = await getStreamUrl();
     document.getElementById("videoUrlInput").value = url;
     document.getElementById("currentUrl").textContent = url || "Ninguna";
-    // Solo cargamos preview si es una URL normal (no pantalla compartida)
     if (url && !url.startsWith("live_screen:")) {
         document.getElementById("previewFrame").src = getEmbedUrl(url);
     }
