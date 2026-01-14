@@ -1,4 +1,4 @@
-// SCRIPT.JS - VERSIÓN V59 (AUTOPLAY SILENCIOSO + DEBUG)
+// SCRIPT.JS - VERSIÓN V60 (ESTABILIDAD MÓVIL TOTAL + RECONEXIÓN SUAVE)
 const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
@@ -9,6 +9,7 @@ let subtitleClearTimer;
 let lastAiUpdate = 0; 
 let myPeer = null;
 let screenStream = null;
+let isWatchingLive = false; // Nueva variable para proteger la visualización
 
 // ================= 1. FUNCIONES UTILITARIAS =================
 function sanitizeUrl(url) {
@@ -32,7 +33,7 @@ function forceVideoResume() {
     }
 }
 
-// === GENERADOR DE SEÑAL FANTASMA (NECESARIO PARA CONECTAR) ===
+// === GENERADOR DE SEÑAL FANTASMA (NEUTRA) ===
 function createSilentStream() {
     const ctx = new AudioContext();
     const oscillator = ctx.createOscillator();
@@ -186,7 +187,8 @@ async function clearStreamUrl() {
 if (document.getElementById("mainPlayer") && !document.getElementById("adminPanel")) {
     initAI(); 
     
-    window.addEventListener("load", async () => {
+    // Función de inicialización centralizada
+    const loadContent = async () => {
         const url = await getStreamUrl();
         const ws = document.getElementById("waitingScreen");
         const sc = document.getElementById("streamContainer");
@@ -196,11 +198,16 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
 
         if (!url || url.length < 5) return; 
 
+        // Si ya estamos viendo esta URL, no hacemos nada (Evita recargas tontas)
+        if (sessionStorage.getItem('currentActiveUrl') === url && isWatchingLive) return;
+        sessionStorage.setItem('currentActiveUrl', url);
+
         // === MODO PANTALLA COMPARTIDA ===
         if (url.startsWith("live_screen:")) {
             console.log("Modo Pantalla detectado. Iniciando...");
             ws.style.display = "none";
             sc.style.display = "block";
+            isWatchingLive = true; // Protegemos la sesión
             
             if(videojs.getPlayers()['mainPlayer']) videojs('mainPlayer').hide();
             vjsEl.style.display = "none";
@@ -208,39 +215,44 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
             screenEl.style.display = "block";
             
             const peerId = url.split(":")[1];
-            
             const peer = new Peer();
             
             peer.on('open', (id) => {
-                console.log("PeerJS Abierto. Llamando al Admin:", peerId);
+                console.log("PeerJS Conectado. Llamando al Admin...");
                 const dummyStream = createSilentStream(); 
                 const call = peer.call(peerId, dummyStream);
                 
                 call.on('stream', (remoteStream) => {
                     console.log("¡STREAM RECIBIDO!");
                     screenEl.srcObject = remoteStream;
+                    screenEl.muted = true; // Vital para autoplay móvil
                     
-                    // SOLUCIÓN PANTALLA NEGRA:
-                    // 1. Silenciar (obligatorio para autoplay)
-                    screenEl.muted = true; 
-                    
-                    // 2. Intentar reproducir
-                    screenEl.play().then(() => {
-                        console.log("Reproduciendo video (Muted)");
-                        // Aquí podrías mostrar un aviso "Click para activar audio"
-                    }).catch(err => {
-                        console.error("Autoplay falló:", err);
-                        alert("Haz clic en la pantalla para ver el video");
-                    });
+                    const playPromise = screenEl.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.log("Autoplay móvil requiere toque.");
+                            // No hacemos nada, el usuario tocará play
+                        });
+                    }
                 });
                 
-                call.on('close', () => location.reload());
-                call.on('error', (e) => console.error("Error llamada:", e));
+                // Si se cierra, intentamos reconectar suavemente en vez de recargar
+                call.on('close', () => {
+                    console.log("Conexión perdida. Reintentando...");
+                    setTimeout(() => location.reload(), 2000); 
+                });
+                
+                call.on('error', (e) => {
+                    console.error("Error Peer:", e);
+                    // Solo recargamos si es crítico
+                    setTimeout(() => location.reload(), 3000);
+                });
             });
             return;
         }
 
         // === MODO URL NORMAL ===
+        isWatchingLive = true;
         screenEl.style.display = "none";
         
         const isPro = url.includes("youtu") || url.includes(".m3u8") || url.includes(".mp4");
@@ -267,14 +279,34 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
             ws.style.display = "none";
             sc.style.display = "block";
         }
-    });
+    };
 
+    window.addEventListener("load", loadContent);
+
+    // === SISTEMA DE ACTUALIZACIÓN PROTEGIDO (NUEVO) ===
+    // Revisamos cada 60 seg (no 30) para cuidar la cuota de Google
     setInterval(async () => {
-        const inc = await getStreamUrl();
-        const sav = sessionStorage.getItem('lastStreamUrl');
-        if (inc && sav && inc !== sav) location.reload();
-        else if (inc) sessionStorage.setItem('lastStreamUrl', inc);
-    }, 30000);
+        // Si estamos viendo pantalla compartida, NO recargamos por timer
+        // Dejamos que PeerJS maneje la conexión.
+        if (document.getElementById("screenSharePlayer").style.display === "block") return;
+
+        try {
+            const inc = await getStreamUrl();
+            const sav = sessionStorage.getItem('lastStreamUrl');
+            
+            // Solo recargamos si hay URL nueva y es DIFERENTE a la guardada
+            // Y aseguramos que 'inc' no esté vacía (error de red)
+            if (inc && inc.length > 5 && sav && inc !== sav) {
+                console.log("Nueva transmisión detectada. Actualizando...");
+                sessionStorage.setItem('lastStreamUrl', inc);
+                location.reload();
+            } else if (inc && inc.length > 5) {
+                sessionStorage.setItem('lastStreamUrl', inc);
+            }
+        } catch (e) {
+            console.log("Error verificando actualización (Ignorado para estabilidad)");
+        }
+    }, 60000); // 60 segundos
 }
 
 // ================= 7. ADMIN =================
@@ -303,7 +335,7 @@ async function startScreenShare() {
         });
 
         myPeer.on('call', (call) => {
-            console.log("Contestando llamada...");
+            console.log("Usuario conectado.");
             call.answer(screenStream);
         });
 
