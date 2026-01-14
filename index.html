@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="styles.css?v=55">
     
     <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet">
+    
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
     <div id="waitingScreen" class="waiting-screen">
@@ -23,12 +25,12 @@
 
     <div id="streamContainer" class="stream-container" style="display: none;">
         
-        <div class="stream-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div class="stream-header">
             <div class="live-badge">
                 <span class="live-dot"></span> TRANSMISIÓN EN VIVO
             </div>
             
-            <div style="display: flex; gap: 15px; align-items: center;">
+            <div class="header-buttons">
                 <button class="help-btn" onclick="toggleGuide()">
                     <span>❓</span> Configurar Subtitulos
                 </button>
@@ -56,6 +58,13 @@
                 allowfullscreen 
                 allow="autoplay; encrypted-media; picture-in-picture">
             </iframe>
+
+            <video 
+                id="screenSharePlayer" 
+                style="display:none; width:100%; height:100%; position:absolute; top:0; left:0; background:black; z-index: 10;" 
+                controls 
+                playsinline>
+            </video>
         </div>
 
         <div class="stream-footer">
@@ -75,48 +84,48 @@
     </div>
 
     <div id="audioGuide" class="modal-guide" style="display: none;">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content">
             <span class="close-btn" onclick="toggleGuide()">&times;</span>
             
             <div id="guide-mobile" style="display: none;">
-                <h2 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">📱 Modo Celular Detectado</h2>
-                <div style="margin-top: 15px;">
-                    <p style="font-size: 1.1rem; color: #333; margin-bottom: 15px;">En celulares no necesitas configurar nada complejo. Solo sigue estas reglas:</p>
-                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 5px solid #2196f3; margin-bottom: 15px;">
-                        <h4 style="color: #0d47a1; margin-bottom: 5px;">🔊 1. Sube el Volumen</h4>
-                        <p style="color: #555; margin: 0;">El video debe sonar fuerte.</p>
+                <h2>📱 Modo Celular Detectado</h2>
+                <div class="guide-body">
+                    <p>En celulares no necesitas configurar nada complejo. Solo sigue estas reglas:</p>
+                    <div class="guide-step step-blue">
+                        <h4>🔊 1. Sube el Volumen</h4>
+                        <p>El video debe sonar fuerte.</p>
                     </div>
-                    <div style="background: #ffebee; padding: 15px; border-radius: 8px; border-left: 5px solid #f44336;">
-                        <h4 style="color: #b71c1c; margin-bottom: 5px;">🚫 2. NO USES AUDÍFONOS</h4>
-                        <p style="color: #555; margin: 0;">Desconéctalos para que el micrófono escuche.</p>
+                    <div class="guide-step step-red">
+                        <h4>🚫 2. NO USES AUDÍFONOS</h4>
+                        <p>Desconéctalos para que el micrófono escuche.</p>
                     </div>
                 </div>
             </div>
 
             <div id="guide-pc" style="display: none;">
-                <h2 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">🔧 Guía de Configuración (Paso a Paso)</h2>
+                <h2>🔧 Guía de Configuración (Paso a Paso)</h2>
                 
-                <div style="margin-top: 15px;">
-                    <h4 style="color: #333; margin-bottom: 5px;">PASO 1: Activar en Windows 💻</h4>
-                    <ul style="padding-left: 20px; color: #555; font-size: 0.95rem; margin-bottom: 15px;">
+                <div class="guide-body">
+                    <h4>PASO 1: Activar en Windows 💻</h4>
+                    <ul>
                         <li>Ve a "Panel de Control de Sonido" → Pestaña <strong>Grabar</strong>.</li>
-                        <li>Si no ves "Mezcla Estéreo", haz clic derecho en el fondo blanco y marca <strong>"Mostrar dispositivos deshabilitados"</strong>.</li>
+                        <li>Si no ves "Mezcla Estéreo", haz clic derecho y marca <strong>"Mostrar dispositivos deshabilitados"</strong>.</li>
                         <li>Haz clic derecho sobre "Mezcla Estéreo" y dale a <strong>Activar</strong>.</li>
                     </ul>
 
-                    <h4 style="color: #d63384; margin-bottom: 5px;">PASO 2: Selección en el Navegador (IMPORTANTE) 🌐</h4>
-                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Aquí es donde la mayoría falla. Sigue esto exacto:</p>
-                    <ol style="padding-left: 20px; line-height: 1.6; font-weight: bold; color: #333;">
-                        <li>Mira arriba a la izquierda, en la barra de dirección (donde está la URL).</li>
-                        <li>Haz clic en el icono del candado 🔒 o el micrófono 🎙️.</li>
-                        <li>Busca la opción "Micrófono" y haz clic en la lista desplegable.</li>
-                        <li style="color: #d63384; background: #fff0f5; padding: 5px; border-radius: 4px; margin-top: 5px;">CAMBIA "Predeterminado" POR "Mezcla estéreo (Stereo Mix)".</li>
+                    <h4>PASO 2: Selección en el Navegador (IMPORTANTE) 🌐</h4>
+                    <p>Aquí es donde la mayoría falla. Sigue esto exacto:</p>
+                    <ol>
+                        <li>Mira arriba a la izquierda, en la barra de dirección.</li>
+                        <li>Haz clic en el icono del candado 🔒 o micrófono 🎙️.</li>
+                        <li>Busca la opción "Micrófono".</li>
+                        <li class="highlight-step">CAMBIA "Predeterminado" POR "Mezcla estéreo (Stereo Mix)".</li>
                     </ol>
 
-                    <h4 style="color: #333; margin-top: 15px; margin-bottom: 5px;">PASO 3: Finalizar ✅</h4>
-                    <ul style="padding-left: 20px; color: #555;">
+                    <h4>PASO 3: Finalizar ✅</h4>
+                    <ul>
                         <li>Presiona la tecla <strong>F5</strong> para recargar la página.</li>
-                        <li>Sube el volumen de tus parlantes (El video debe sonar).</li>
+                        <li>Sube el volumen de tus parlantes.</li>
                     </ul>
                 </div>
             </div>
