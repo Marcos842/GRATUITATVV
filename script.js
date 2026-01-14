@@ -1,4 +1,4 @@
-// SCRIPT.JS - VERSIÓN V58 (CORRECCIÓN "VIDEO FANTASMA" PARA DESBLOQUEAR PANTALLA NEGRA)
+// SCRIPT.JS - VERSIÓN V59 (AUTOPLAY SILENCIOSO + DEBUG)
 const ADMIN_PASSWORD = "admin123";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwI2NnqPt-u-h8UBDB_NHF1RlJnGfexuA9IeB6g4iyYkZ0nxoD2ped_vLWDkYS66rFSjA/exec";
 
@@ -7,8 +7,6 @@ let recognition;
 let isAiActive = false;
 let subtitleClearTimer; 
 let lastAiUpdate = 0; 
-
-// Variables para compartir pantalla
 let myPeer = null;
 let screenStream = null;
 
@@ -34,20 +32,15 @@ function forceVideoResume() {
     }
 }
 
-// === NUEVO: GENERADOR DE SEÑAL FALSA (PARA QUE PEERJS NO FALLE) ===
+// === GENERADOR DE SEÑAL FANTASMA (NECESARIO PARA CONECTAR) ===
 function createSilentStream() {
-    // 1. Crear un audio silencioso
     const ctx = new AudioContext();
     const oscillator = ctx.createOscillator();
     const dst = oscillator.connect(ctx.createMediaStreamDestination());
     oscillator.start();
-    
-    // 2. Crear un video negro (Canvas)
     const canvas = document.createElement("canvas");
-    canvas.width = 1; canvas.height = 1; // 1 pixel
-    const canvasStream = canvas.captureStream(10); // 10 FPS
-    
-    // 3. Mezclar ambos en un Stream válido
+    canvas.width = 1; canvas.height = 1;
+    const canvasStream = canvas.captureStream(10);
     const trackAudio = dst.stream.getAudioTracks()[0];
     const trackVideo = canvasStream.getVideoTracks()[0];
     return new MediaStream([trackAudio, trackVideo]);
@@ -96,7 +89,7 @@ function getEmbedUrl(url) {
     return url; 
 }
 
-// ================= 4. LÓGICA IA (SUBTÍTULOS) =================
+// ================= 4. LÓGICA IA =================
 function updateSubtitleDisplay(text, isFinal) {
     const box = document.getElementById('aiCaptions');
     if (!text || text.length === 0) return;
@@ -110,11 +103,10 @@ function updateSubtitleDisplay(text, isFinal) {
     box.style.display = 'block';
 
     if (isFinal) {
-        const TIEMPO_EN_PANTALLA = 8000; 
         subtitleClearTimer = setTimeout(() => {
             box.style.display = 'none';
             box.innerHTML = '';
-        }, TIEMPO_EN_PANTALLA); 
+        }, 8000); 
     }
 }
 
@@ -122,9 +114,7 @@ function initAI() {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
-        recognition.continuous = true;  
-        recognition.interimResults = true; 
-        recognition.lang = 'es-ES'; 
+        recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'es-ES'; 
 
         recognition.onstart = () => { lastAiUpdate = Date.now(); forceVideoResume(); };
         recognition.onresult = (event) => {
@@ -135,9 +125,7 @@ function initAI() {
             const isFinal = event.results[lastIndex].isFinal;
             if (transcript.trim().length > 0) updateSubtitleDisplay(transcript, isFinal);
         };
-        recognition.onend = () => { 
-            if (isAiActive) { try { recognition.start(); } catch(e) {} forceVideoResume(); }
-        };
+        recognition.onend = () => { if (isAiActive) { try { recognition.start(); } catch(e) {} forceVideoResume(); } };
         recognition.onerror = (event) => {
             if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                 toggleAI(true); alert("❌ Revisa micrófono.");
@@ -146,8 +134,8 @@ function initAI() {
         };
         setInterval(() => {
             if (isAiActive && isMobile()) {
-                const tiempoSinSenal = Date.now() - lastAiUpdate;
-                if (tiempoSinSenal > 5000) { recognition.abort(); lastAiUpdate = Date.now(); }
+                const ts = Date.now() - lastAiUpdate;
+                if (ts > 5000) { recognition.abort(); lastAiUpdate = Date.now(); }
             }
         }, 1000);
     } else {
@@ -165,7 +153,6 @@ function toggleAI(forceOff = false) {
         btn.innerHTML = "<span>🎙️</span> Subtítulos IA (OFF)";
         btn.classList.remove("ai-active");
         box.style.display = 'none';
-        clearTimeout(subtitleClearTimer);
     } else {
         try {
             recognition.start();
@@ -211,6 +198,7 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
 
         // === MODO PANTALLA COMPARTIDA ===
         if (url.startsWith("live_screen:")) {
+            console.log("Modo Pantalla detectado. Iniciando...");
             ws.style.display = "none";
             sc.style.display = "block";
             
@@ -221,37 +209,33 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
             
             const peerId = url.split(":")[1];
             
-            // Inicializar PeerJS (Visor)
             const peer = new Peer();
             
             peer.on('open', (id) => {
-                console.log("Conectando con ID:", peerId);
-                
-                // === SOLUCIÓN CRÍTICA: VIDEO FANTASMA ===
-                // Enviamos video negro y silencio para que el navegador acepte la llamada
+                console.log("PeerJS Abierto. Llamando al Admin:", peerId);
                 const dummyStream = createSilentStream(); 
-                
                 const call = peer.call(peerId, dummyStream);
                 
                 call.on('stream', (remoteStream) => {
-                    console.log("¡Señal de video recibida!");
+                    console.log("¡STREAM RECIBIDO!");
                     screenEl.srcObject = remoteStream;
                     
-                    // Forzar reproducción
-                    const playPromise = screenEl.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.log("Autoplay bloqueado. El usuario debe hacer click.");
-                            // Si se bloquea, mostramos el botón de Play del control nativo
-                        });
-                    }
+                    // SOLUCIÓN PANTALLA NEGRA:
+                    // 1. Silenciar (obligatorio para autoplay)
+                    screenEl.muted = true; 
+                    
+                    // 2. Intentar reproducir
+                    screenEl.play().then(() => {
+                        console.log("Reproduciendo video (Muted)");
+                        // Aquí podrías mostrar un aviso "Click para activar audio"
+                    }).catch(err => {
+                        console.error("Autoplay falló:", err);
+                        alert("Haz clic en la pantalla para ver el video");
+                    });
                 });
                 
                 call.on('close', () => location.reload());
-                call.on('error', (err) => {
-                    console.error("Error Peer:", err);
-                    setTimeout(() => location.reload(), 3000);
-                });
+                call.on('error', (e) => console.error("Error llamada:", e));
             });
             return;
         }
@@ -293,7 +277,7 @@ if (document.getElementById("mainPlayer") && !document.getElementById("adminPane
     }, 30000);
 }
 
-// ================= 7. ADMIN Y TRANSMISIÓN =================
+// ================= 7. ADMIN =================
 function checkPassword() {
     if (document.getElementById("passwordInput").value === ADMIN_PASSWORD) {
         document.getElementById("loginScreen").style.display = "none";
@@ -304,25 +288,23 @@ function checkPassword() {
 
 async function startScreenShare() {
     try {
-        // Pedir pantalla y audio
         screenStream = await navigator.mediaDevices.getDisplayMedia({
             video: { cursor: "always" },
-            audio: true // IMPORTANTE
+            audio: true 
         });
 
         myPeer = new Peer();
 
         myPeer.on('open', (id) => {
-            console.log('ID Transmisión:', id);
+            console.log('Admin ID:', id);
             saveStreamUrl("live_screen:" + id);
             alert("📡 Transmitiendo Pantalla. NO CIERRES esta pestaña.");
             document.getElementById('previewFrame').src = ""; 
         });
 
-        // Cuando el Visor llama (con su video fantasma), le contestamos
         myPeer.on('call', (call) => {
-            console.log("Usuario conectado. Enviando pantalla...");
-            call.answer(screenStream); // Le mandamos la pantalla real
+            console.log("Contestando llamada...");
+            call.answer(screenStream);
         });
 
         screenStream.getVideoTracks()[0].onended = () => {
