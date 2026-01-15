@@ -1,4 +1,4 @@
-/* STYLES.CSS - VERSIÓN V56 (SOPORTE PANTALLA COMPARTIDA + GUÍA LIMPIA) */
+/* STYLES.CSS - VERSIÓN V58 (SOPORTE PANTALLA COMPARTIDA + MULTI QR YAPE/BINANCE) */
 
 * {
     margin: 0;
@@ -141,73 +141,113 @@ body {
     border: none;
 }
 
-/* FOOTER Y DONACIONES */
+/* ========================================
+   FOOTER Y DONACIONES (VERSIÓN V59 - QRs GIGANTES Y VISIBLES)
+======================================== */
 .stream-footer {
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    padding: 30px;
+    padding: 40px 20px; /* Más espacio vertical */
 }
 
 .donation-section h3 {
     color: #667eea;
-    font-size: 1.5rem;
-    margin-bottom: 20px;
+    font-size: 1.8rem; /* Título más grande */
+    margin-bottom: 30px;
     text-align: center;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .donation-content {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 30px;
-    flex-wrap: wrap;
+    justify-content: center; /* Centramos todo */
+    gap: 40px;
+    flex-wrap: wrap; /* Para que baje en pantallas chicas */
 }
 
 .donation-text {
     flex: 1;
-    min-width: 250px;
+    min-width: 300px;
+    text-align: center; /* Texto centrado para más impacto */
+    background: rgba(255,255,255,0.5); /* Fondo suave para el texto */
+    padding: 20px;
+    border-radius: 15px;
 }
 
 .donation-text p {
     color: #333;
-    font-size: 1.1rem;
-    margin-bottom: 10px;
+    font-size: 1.3rem; /* Texto más grande */
+    margin-bottom: 15px;
     line-height: 1.6;
 }
 
 .donation-methods {
     color: #667eea;
-    font-weight: 600;
-    font-size: 1.2rem !important;
+    font-weight: 800;
+    font-size: 1.4rem !important;
 }
 
-.donation-qr {
-    flex-shrink: 0;
+/* --- GRUPO DE QRs (GRANDES) --- */
+.qr-group {
+    display: flex;
+    gap: 30px; /* Más separación entre QRs */
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
-.donation-qr img {
-    width: 180px;
-    height: 180px;
-    border-radius: 15px;
-    border: 3px solid #667eea;
-    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
-    object-fit: cover;
-}
-
-.qr-placeholder {
-    width: 180px;
-    height: 180px;
-    border-radius: 15px;
-    border: 3px dashed #667eea;
-    background: rgba(102, 126, 234, 0.1);
+.qr-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    color: #667eea;
+    gap: 15px;
+    transition: transform 0.3s ease;
 }
 
-.qr-placeholder p { font-size: 3rem; margin-bottom: 10px; }
-.qr-placeholder small { text-align: center; font-size: 0.9rem; line-height: 1.4; }
+/* Efecto al pasar el mouse por todo el bloque del QR */
+.qr-item:hover {
+    transform: translateY(-10px); /* Flota hacia arriba */
+}
+
+.qr-label {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #fff;
+    background: #667eea; /* Etiqueta con color sólido */
+    padding: 8px 20px;
+    border-radius: 50px;
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+.qr-img {
+    width: 220px; /* AUMENTADO: De 150px a 220px */
+    height: 220px;
+    border-radius: 20px;
+    border: 4px solid #fff; /* Borde blanco grueso */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* Sombra fuerte para resaltar */
+    object-fit: contain; /* Asegura que el QR se vea completo */
+    
+    background: white; /* FONDO BLANCO OBLIGATORIO para contraste */
+    padding: 10px; /* Espacio interno para que el QR respire */
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .donation-content {
+        flex-direction: column;
+    }
+    
+    .donation-text {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .qr-img {
+        width: 180px; /* En celular un poco más chicos pero visibles */
+        height: 180px;
+    }
+}
 
 /* ========================================
    3. ESTILOS DE LA IA (SUBTÍTULOS)
@@ -309,7 +349,7 @@ body {
 }
 .close-btn:hover { color: #333; }
 
-/* --- ESTILOS INTERNOS DE LA GUÍA (NUEVO: REEMPLAZA ESTILOS INLINE) --- */
+/* --- ESTILOS INTERNOS DE LA GUÍA --- */
 .guide-body { margin-top: 15px; }
 .guide-body ul, .guide-body ol { padding-left: 20px; line-height: 1.6; margin: 10px 0; color: #555; }
 .guide-body h4 { color: #333; margin-top: 15px; margin-bottom: 5px; font-weight: 700; }
@@ -416,11 +456,30 @@ body {
     .stream-container { border-radius: 15px; }
     .stream-header { padding: 15px 20px; } /* Flex wrap se encarga del resto */
     .live-badge { font-size: 1rem; padding: 10px 20px; }
+    
+    /* Responsive Footer Multi QR */
     .stream-footer { padding: 20px; }
     .donation-section h3 { font-size: 1.2rem; }
-    .donation-content { flex-direction: column; text-align: center; }
-    .donation-text { min-width: 100%; }
-    .donation-qr img, .qr-placeholder { width: 150px; height: 150px; }
+    .donation-content { 
+        flex-direction: column; 
+        text-align: center; 
+    }
+    .donation-text { 
+        text-align: center;
+        margin-bottom: 20px;
+        min-width: 100%;
+    }
+    
+    /* Ajuste para que los QRs se acomoden en móviles */
+    .qr-group {
+        width: 100%;
+        justify-content: space-around;
+    }
+    .qr-img {
+        width: 130px;
+        height: 130px;
+    }
+
     .waiting-content h1 { font-size: 1.8rem; }
     .waiting-content p { font-size: 1rem; }
     .ai-caption-box { font-size: 1.1rem; width: 90%; bottom: 10%; padding: 10px 15px; }
